@@ -208,12 +208,11 @@ function FormularioAlumno(){
 
   if (step === 0) {
     return (
-      <div style={{position:"relative", maxWidth:460, minHeight:340, overflow:"hidden"}}>
+      <div style={{position:"relative", maxWidth:460, minHeight:340}}>
         <div style={{
-          position:"absolute", top:"50%", left:"50%", width:520, height:520,
-          transform:"translate(-50%,-50%)",
-          backgroundImage:"url(/logo.jpg)", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center",
-          filter:"blur(6px)", opacity:0.14, zIndex:0, pointerEvents:"none"
+          position:"fixed", inset:0,
+          backgroundImage:"url(/logo.jpg)", backgroundSize:"cover", backgroundRepeat:"no-repeat", backgroundPosition:"center",
+          filter:"blur(4px)", opacity:0.28, zIndex:0, pointerEvents:"none"
         }} />
         <div style={{position:"relative", zIndex:1}}>
           <p style={{color:"#5a7078", fontSize:14}}>Selecciona el cuestionario que te ha indicado tu tutor/a u orientadora.</p>
