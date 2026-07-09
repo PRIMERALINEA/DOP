@@ -5,16 +5,20 @@ import {
 } from "recharts";
 import { supabase } from "./supabaseClient.js";
 
+// Convención única en TODO el cuestionario: 1 (peor) -> 4 (mejor/más bienestar).
+// inv:true significa "el ítem está redactado como riesgo, se corrige con 5-valor".
+// inv:false significa "el ítem ya está redactado en positivo, no se corrige".
+
 // ---------- CUESTIONARIO 1 (solo 1º ESO) ----------
 const ITEMS_C1 = [
-  ["A","Me cuesta dormir porque estoy pensando en cosas del insti.",false],
-  ["A","Cuando tengo un examen o trabajo importante, me pongo muy nervioso/a.",false],
-  ["A","Sé calmarme cuando algo me estresa.",true],
-  ["A","Me siento agobiado/a por la cantidad de tareas y exámenes.",false],
-  ["A","Cuando tengo un problema, encuentro la forma de resolverlo sin agobiarme demasiado.",true],
-  ["A","Tengo dolores de cabeza, tripa o cansancio sin motivo físico claro.",false],
-  ["A","Siento que tengo tiempo suficiente para hacer todo lo que tengo que hacer.",true],
-  ["A","Me cuesta relajarme incluso en mi tiempo libre.",false],
+  ["A","Me cuesta dormir porque estoy pensando en cosas del insti.",true],
+  ["A","Cuando tengo un examen o trabajo importante, me pongo muy nervioso/a.",true],
+  ["A","Sé calmarme cuando algo me estresa.",false],
+  ["A","Me siento agobiado/a por la cantidad de tareas y exámenes.",true],
+  ["A","Cuando tengo un problema, encuentro la forma de resolverlo sin agobiarme demasiado.",false],
+  ["A","Tengo dolores de cabeza, tripa o cansancio sin motivo físico claro.",true],
+  ["A","Siento que tengo tiempo suficiente para hacer todo lo que tengo que hacer.",false],
+  ["A","Me cuesta relajarme incluso en mi tiempo libre.",true],
   ["B","Tengo un horario o momento fijo para estudiar cada día.",false],
   ["B","Dejo los trabajos y el estudio para el último día.",true],
   ["B","Cuando estudio, entiendo lo que estoy leyendo o aprendiendo.",false],
@@ -47,44 +51,44 @@ const ITEMS_C1 = [
   ["E","En casa siento que me apoyan con el tema de estudios.",false],
 ];
 const BLOQUES_C1 = {
-  A: "Gestión del estrés", B: "Hábitos de estudio", C: "Autoestima",
+  A: "Regulación del estrés", B: "Hábitos de estudio", C: "Autoestima",
   D: "Habilidades sociales", E: "Clima escolar/apoyo"
 };
 
 // ---------- CUESTIONARIO 2 (toda la ESO) ----------
 const ITEMS_C2 = [
-  ["F","Algún compañero/a se ha metido conmigo o me ha insultado de forma repetida.",false],
-  ["F","Me han dejado de lado o excluido del grupo a propósito más de una vez.",false],
-  ["F","He recibido mensajes, comentarios o imágenes que me han hecho sentir mal por móvil o redes.",false],
-  ["F","He visto que otro compañero/a se metía con alguien de forma repetida, sin que nadie hiciera nada.",false],
-  ["F","Sé a quién puedo contarle si veo que están tratando mal a alguien.",true],
-  ["F","Alguna vez me he metido con algún compañero/a o he participado en dejarlo de lado.",false],
-  ["F","Me siento seguro/a en los espacios del instituto (pasillos, patio, baños, vestuarios).",true],
-  ["G","Uso el móvil o las redes sociales justo antes de dormir.",false],
-  ["G","Pierdo la noción del tiempo cuando estoy con el móvil o videojuegos.",false],
-  ["G","Comparar mi vida con lo que veo en redes sociales me hace sentir peor.",false],
-  ["G","Discuto en casa por el tiempo que paso con el móvil o pantallas.",false],
-  ["G","Sé desconectarme cuando quiero, sin sentir que \"necesito\" seguir mirando.",true],
-  ["G","Uso el móvil o internet para hablar de mis problemas con amigos/as.",false],
-  ["H","Duermo al menos 8 horas la mayoría de las noches.",true],
-  ["H","Me cuesta quedarme dormido/a por las noches.",false],
-  ["H","Me despierto cansado/a aunque haya dormido.",false],
-  ["H","Me quedo despierto/a hasta tarde con el móvil o pantallas.",false],
-  ["H","Durante el día, tengo suficiente energía para hacer las cosas.",true],
-  ["I","Últimamente me siento triste o de bajón sin motivo claro.",false],
-  ["I","Disfruto de cosas que antes me gustaban (quedar, aficiones, deporte...).",true],
-  ["I","Me siento con ganas e ilusión por las cosas del día a día.",true],
-  ["I","Me cuesta concentrarme más de lo normal últimamente.",false],
-  ["I","Me siento irritable o de mal humor con facilidad.",false],
-  ["I","Tengo a alguien con quien hablar cuando me siento mal.",true],
+  ["F1","Algún compañero/a se ha metido conmigo o me ha insultado de forma repetida.",true],
+  ["F1","Me han dejado de lado o excluido del grupo a propósito más de una vez.",true],
+  ["F1","He recibido mensajes, comentarios o imágenes que me han hecho sentir mal por móvil o redes.",true],
+  ["F2","He visto que otro compañero/a se metía con alguien de forma repetida, sin que nadie hiciera nada.",true],
+  ["F2","Sé a quién puedo contarle si veo que están tratando mal a alguien.",false],
+  ["ALERTA","Alguna vez me he metido con algún compañero/a o he participado en dejarlo de lado.",false],
+  ["F2","Me siento seguro/a en los espacios del instituto (pasillos, patio, baños, vestuarios).",false],
+  ["G","Uso el móvil o las redes sociales justo antes de dormir.",true],
+  ["G","Pierdo la noción del tiempo cuando estoy con el móvil o videojuegos.",true],
+  ["G","Comparar mi vida con lo que veo en redes sociales me hace sentir peor.",true],
+  ["G","Discuto en casa por el tiempo que paso con el móvil o pantallas.",true],
+  ["G","Sé desconectarme cuando quiero, sin sentir que \"necesito\" seguir mirando.",false],
+  ["H","Duermo al menos 8 horas la mayoría de las noches.",false],
+  ["H","Me cuesta quedarme dormido/a por las noches.",true],
+  ["H","Me despierto cansado/a aunque haya dormido.",true],
+  ["H","Me quedo despierto/a hasta tarde con el móvil o pantallas.",true],
+  ["H","Durante el día, tengo suficiente energía para hacer las cosas.",false],
+  ["I","Últimamente me siento triste o de bajón sin motivo claro.",true],
+  ["I","Disfruto de cosas que antes me gustaban (quedar, aficiones, deporte...).",false],
+  ["I","Me siento con ganas e ilusión por las cosas del día a día.",false],
+  ["I","Me cuesta concentrarme más de lo normal últimamente.",true],
+  ["I","Me siento irritable o de mal humor con facilidad.",true],
+  ["I","Tengo a alguien con quien hablar cuando me siento mal.",false],
 ];
 const BLOQUES_C2 = {
-  F: "Convivencia y acoso", G: "Pantallas y redes", H: "Sueño y descanso", I: "Estado de ánimo"
+  F1: "Ausencia de victimización", F2: "Entorno seguro y apoyo",
+  G: "Autorregulación de pantallas", H: "Calidad del descanso", I: "Bienestar anímico"
 };
 
 const COLORS = {
   A:"#c2694a", B:"#4a7a8c", C:"#8c6a4a", D:"#5a8c6a", E:"#7a5a8c",
-  F:"#a4483f", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f"
+  F1:"#a4483f", F2:"#c2694a", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f"
 };
 const OPCIONES = [
   {v:1,l:"Nunca"}, {v:2,l:"A veces"}, {v:3,l:"Muchas veces"}, {v:4,l:"Siempre"},
@@ -97,10 +101,13 @@ const CUESTIONARIOS = {
 
 function correct(val, inv){ return inv ? 5 - val : val; }
 
+// Calcula media por bloque (1=peor, 4=mejor en todos los bloques) e ignora
+// ítems marcados como "ALERTA" (no forman parte de ninguna media).
 function blockScores(items, bloques, answers){
   const sums = {}, counts = {};
   items.forEach((it, i) => {
     const [b, , inv] = it;
+    if (b === "ALERTA") return;
     const raw = answers[i];
     if (raw == null) return;
     const c = correct(raw, inv);
@@ -109,6 +116,11 @@ function blockScores(items, bloques, answers){
   });
   const out = {};
   Object.keys(bloques).forEach(b => { out[b] = counts[b] ? +(sums[b]/counts[b]).toFixed(2) : null; });
+  // Ítems de alerta: se guardan aparte, con su valor bruto (sin corregir), 1-4.
+  items.forEach((it, i) => {
+    const [b] = it;
+    if (b === "ALERTA" && answers[i] != null) out["ALERTA_" + i] = answers[i];
+  });
   return out;
 }
 
@@ -149,7 +161,7 @@ function FormularioAlumno(){
   const [codigo, setCodigo] = useState("");
   const [clase, setClase] = useState("");
   const [answers, setAnswers] = useState({});
-  const [step, setStep] = useState(0); // 0 = selección, 1 = datos, 2..N+1 = items, luego abierta
+  const [step, setStep] = useState(0);
   const [libre, setLibre] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
@@ -173,7 +185,6 @@ function FormularioAlumno(){
 
   if (enviado) return <div style={{padding:20, background:"#e8ede8", borderRadius:4}}>Respuesta guardada. Gracias.</div>;
 
-  // Paso 0: elegir cuestionario
   if (step === 0) {
     return (
       <div style={{maxWidth:460}}>
@@ -190,7 +201,6 @@ function FormularioAlumno(){
     );
   }
 
-  // Paso 1: datos del alumno/a
   if (step === 1) {
     return (
       <div style={{maxWidth:420}}>
@@ -222,7 +232,7 @@ function FormularioAlumno(){
     const [bloque, texto] = cfg.items[itemIndex];
     return (
       <div style={{maxWidth:520}}>
-        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{cfg.bloques[bloque]} · pregunta {itemIndex+1} de {total}</div>
+        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{bloque==="ALERTA" ? "Convivencia" : cfg.bloques[bloque]} · pregunta {itemIndex+1} de {total}</div>
         <div style={{fontSize:18, marginBottom:16}}>{texto}</div>
         <div style={{display:"flex", flexDirection:"column", gap:8}}>
           {OPCIONES.map(op => (
@@ -311,6 +321,9 @@ function PanelOrientacion({ secret }){
     return { bloque: cfg.bloques[b], key:b, media: +avg.toFixed(2) };
   });
 
+  // Alumnos con alguna respuesta de alerta >= 3 ("Muchas veces"/"Siempre") en ítems tipo ALERTA
+  const alertas = filtered.filter(r => Object.entries(r.scores||{}).some(([k,v]) => k.startsWith("ALERTA_") && v>=3));
+
   return (
     <div>
       <div style={{display:"flex", gap:8, marginBottom:16}}>
@@ -336,7 +349,14 @@ function PanelOrientacion({ secret }){
         </div>
       </div>
 
-      <h3 style={{fontSize:16, marginBottom:8}}>Media grupal por bloque</h3>
+      {alertas.length > 0 && (
+        <div style={{background:"#f7e9e5", border:"1px solid #c2694a", borderRadius:4, padding:"10px 14px", marginBottom:20, fontSize:13}}>
+          ⚠ {alertas.length} alumno/a(s) han indicado haber participado en conductas de exclusión/acoso hacia compañeros/as. Revisar de forma individual, protocolo de convivencia.
+        </div>
+      )}
+
+      <h3 style={{fontSize:16, marginBottom:4}}>Media grupal por bloque</h3>
+      <div style={{fontSize:12, color:"#8c6a4a", marginBottom:8}}>En todos los bloques: más alto (cerca de 4) = más bienestar/protección. Más bajo (cerca de 1) = más riesgo.</div>
       <div style={{background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12, marginBottom:28}}>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={groupAvg}>
@@ -354,12 +374,16 @@ function PanelOrientacion({ secret }){
       <h3 style={{fontSize:16, marginBottom:8}}>Consulta individual</h3>
       <div style={{display:"flex", gap:20, flexWrap:"wrap"}}>
         <div style={{width:240, maxHeight:340, overflowY:"auto", border:"1px solid #e0d8ca", borderRadius:4}}>
-          {filtered.map(r => (
-            <div key={r.clase+r.codigo+r.cuestionario} onClick={()=>setSelected(r)}
-              style={{padding:"8px 12px", cursor:"pointer", background: selected===r ? "#f0e8db" : "transparent", borderBottom:"1px solid #eee", fontSize:13}}>
-              {r.codigo} <span style={{color:"#8c6a4a"}}>· {r.curso} {r.clase}</span>
-            </div>
-          ))}
+          {filtered.map(r => {
+            const tieneAlerta = Object.entries(r.scores||{}).some(([k,v]) => k.startsWith("ALERTA_") && v>=3);
+            return (
+              <div key={r.clase+r.codigo+r.cuestionario} onClick={()=>setSelected(r)}
+                style={{padding:"8px 12px", cursor:"pointer", background: selected===r ? "#f0e8db" : "transparent", borderBottom:"1px solid #eee", fontSize:13}}>
+                {tieneAlerta && <span style={{color:"#c2694a"}}>⚠ </span>}
+                {r.codigo} <span style={{color:"#8c6a4a"}}>· {r.curso} {r.clase}</span>
+              </div>
+            );
+          })}
           {filtered.length===0 && <div style={{padding:12, fontSize:13, color:"#8c6a4a"}}>Sin respuestas aún.</div>}
         </div>
         <div style={{flex:1, minWidth:280, background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12}}>
@@ -376,6 +400,11 @@ function PanelOrientacion({ secret }){
                   <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
+              {Object.entries(selected.scores||{}).some(([k,v]) => k.startsWith("ALERTA_") && v>=3) && (
+                <div style={{marginTop:10, fontSize:13, background:"#f7e9e5", border:"1px solid #c2694a", padding:10, borderRadius:3}}>
+                  ⚠ Ha indicado con frecuencia "muchas veces" o "siempre" haber participado en excluir o meterse con algún compañero/a. Requiere seguimiento individual con protocolo de convivencia, no solo lectura del gráfico.
+                </div>
+              )}
               {selected.libre && (
                 <div style={{marginTop:10, fontSize:13, background:"#faf6ef", padding:10, borderRadius:3}}>
                   <strong>Comentario libre:</strong> {selected.libre}
