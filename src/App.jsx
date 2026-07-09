@@ -139,8 +139,7 @@ export default function App(){
   return (
     <div style={{fontFamily:"'Georgia', serif", background:"#f4f7f8", minHeight:"100vh", color:"#1e2f38"}}>
       <div style={{maxWidth:900, margin:"0 auto", padding:"32px 20px"}}>
-        <header style={{marginBottom:28, borderBottom:"2px solid #12414f", paddingBottom:14, display:"flex", alignItems:"center", gap:14}}>
-          <img src="/logo.jpg" alt="Centro San Valero" style={{height:48, width:"auto", borderRadius:4}} />
+        <header style={{marginBottom:28, borderBottom:"2px solid #12414f", paddingBottom:14}}>
           <h1 style={{fontSize:26, margin:0}}>Cuestionario de Orientación</h1>
         </header>
 
@@ -209,15 +208,23 @@ function FormularioAlumno(){
 
   if (step === 0) {
     return (
-      <div style={{maxWidth:460}}>
-        <p style={{color:"#5a5248", fontSize:14}}>Selecciona el cuestionario que te ha indicado tu tutor/a u orientadora.</p>
-        <div style={{display:"flex", flexDirection:"column", gap:8}}>
-          {Object.entries(CUESTIONARIOS).map(([key, c]) => (
-            <button key={key} onClick={()=>{ setCuestKey(key); setCurso(c.cursos.length===1?c.cursos[0]:""); setStep(1); }}
-              style={{textAlign:"left", padding:"14px", border:"1px solid #b8ac9a", background:"#fff", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
-              {c.label}
-            </button>
-          ))}
+      <div style={{position:"relative", maxWidth:460, minHeight:340, overflow:"hidden"}}>
+        <div style={{
+          position:"absolute", top:"50%", left:"50%", width:520, height:520,
+          transform:"translate(-50%,-50%)",
+          backgroundImage:"url(/logo.jpg)", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center",
+          filter:"blur(6px)", opacity:0.14, zIndex:0, pointerEvents:"none"
+        }} />
+        <div style={{position:"relative", zIndex:1}}>
+          <p style={{color:"#5a7078", fontSize:14}}>Selecciona el cuestionario que te ha indicado tu tutor/a u orientadora.</p>
+          <div style={{display:"flex", flexDirection:"column", gap:8}}>
+            {Object.entries(CUESTIONARIOS).map(([key, c]) => (
+              <button key={key} onClick={()=>{ setCuestKey(key); setCurso(c.cursos.length===1?c.cursos[0]:""); setStep(1); }}
+                style={{textAlign:"left", padding:"14px", border:"1px solid #a9c1c7", background:"rgba(255,255,255,0.9)", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
+                {c.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
