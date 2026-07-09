@@ -321,6 +321,7 @@ function PanelOrientacion({ secret }){
   const [claseFiltro, setClaseFiltro] = useState("");
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [vista, setVista] = useState("lista"); // lista | informeIndividual | informeGrupo
 
   const cfg = CUESTIONARIOS[cuestKey];
 
@@ -350,8 +351,16 @@ function PanelOrientacion({ secret }){
     return { bloque: cfg.bloques[b], key:b, media: +avg.toFixed(2) };
   });
 
-  // Alumnos con alguna respuesta de alerta >= 3 ("Muchas veces"/"Siempre") en ítems tipo ALERTA
+  // Ítems de alerta: se guardan aparte, con su valor bruto (sin corregir), 1-4.
   const alertas = filtered.filter(r => Object.entries(r.scores||{}).some(([k,v]) => k.startsWith("ALERTA_") && v>=3));
+
+  if (vista === "informeIndividual" && selected) {
+    return <InformeIndividual r={selected} groupAvg={groupAvg} cfg={cfg} onVolver={()=>setVista("lista")} />;
+  }
+  if (vista === "informeGrupo") {
+    return <InformeGrupo filtered={filtered} groupAvg={groupAvg} cfg={cfg} alertas={alertas} cuestKey={cuestKey}
+      curso={cursoFiltro} clase={claseFiltro} onVolver={()=>setVista("lista")} />;
+  }
 
   return (
     <div>
@@ -386,7 +395,7 @@ function PanelOrientacion({ secret }){
 
       <h3 style={{fontSize:16, marginBottom:4}}>Media grupal por bloque</h3>
       <div style={{fontSize:12, color:"#8c6a4a", marginBottom:8}}>En todos los bloques: más alto (cerca de 4) = más bienestar/protección. Más bajo (cerca de 1) = más riesgo.</div>
-      <div style={{background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12, marginBottom:28}}>
+      <div style={{background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12, marginBottom:12}}>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={groupAvg}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
@@ -399,6 +408,9 @@ function PanelOrientacion({ secret }){
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <button onClick={()=>setVista("informeGrupo")} disabled={filtered.length===0} style={{...btnPrimary, marginBottom:28}}>
+        Generar informe del grupo
+      </button>
 
       <h3 style={{fontSize:16, marginBottom:8}}>Consulta individual</h3>
       <div style={{display:"flex", gap:20, flexWrap:"wrap"}}>
@@ -439,8 +451,157 @@ function PanelOrientacion({ secret }){
                   <strong>Comentario libre:</strong> {selected.libre}
                 </div>
               )}
+              <button onClick={()=>setVista("informeIndividual")} style={{...btnPrimary, marginTop:14}}>
+                Generar informe individual
+              </button>
             </>
           ) : <div style={{fontSize:13, color:"#8c6a4a"}}>Selecciona un/a alumno/a de la lista.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function banda(score, media){
+  if (score == null) return "Sin datos";
+  if (score >= media + 0.5) return "Banda alta (punto fuerte)";
+  if (score <= media - 0.5) return "Banda baja (a valorar / posible seguimiento)";
+  return "Banda media (dentro de lo esperable)";
+}
+
+const AVISO_INFORME = "Este informe recoge los resultados de un cuestionario de cribado orientativo elaborado por el Departamento de Orientación. No es una evaluación clínica ni diagnóstica, y las puntuaciones no tienen baremos poblacionales validados: son de referencia interna, comparadas con el grupo evaluado en este mismo pase. Debe interpretarse junto con la valoración profesional de orientación, no de forma aislada.";
+
+function InformeIndividual({ r, groupAvg, cfg, onVolver }){
+  const fecha = new Date().toLocaleDateString("es-ES", { year:"numeric", month:"long", day:"numeric" });
+  const tieneAlerta = Object.entries(r.scores||{}).some(([k,v]) => k.startsWith("ALERTA_") && v>=3);
+  return (
+    <div>
+      <div className="no-print" style={{display:"flex", gap:10, marginBottom:20}}>
+        <button onClick={onVolver} style={{...btnPrimary, background:"#5a7078"}}>← Volver al panel</button>
+        <button onClick={()=>window.print()} style={btnPrimary}>Imprimir / Guardar como PDF</button>
+      </div>
+
+      <div style={{border:"1px solid #12414f", padding:24, background:"#fff"}}>
+        <div style={{display:"flex", alignItems:"center", gap:12, borderBottom:"2px solid #12414f", paddingBottom:12, marginBottom:16}}>
+          <img src="/logo.jpg" alt="" style={{height:44}} />
+          <div>
+            <div style={{fontSize:18, fontWeight:"bold"}}>Informe orientativo individual</div>
+            <div style={{fontSize:12, color:"#5a7078"}}>Departamento de Orientación · Centro San Valero · {fecha}</div>
+          </div>
+        </div>
+
+        <p style={{fontSize:12, color:"#5a7078", background:"#f4f7f8", padding:10, borderRadius:3}}>{AVISO_INFORME}</p>
+
+        <table style={{fontSize:14, marginBottom:16}}>
+          <tbody>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Alumno/a</td><td>{r.codigo}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Curso / Clase</td><td>{r.curso} {r.clase}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Cuestionario</td><td>{r.cuestionario}</td></tr>
+          </tbody>
+        </table>
+
+        {tieneAlerta && (
+          <div style={{background:"#f7e9e5", border:"1px solid #c2694a", padding:10, borderRadius:3, fontSize:13, marginBottom:16}}>
+            ⚠ Ha indicado con frecuencia haber participado en excluir o meterse con algún compañero/a. Se recomienda seguimiento individual siguiendo el protocolo de convivencia del centro.
+          </div>
+        )}
+
+        <table style={{width:"100%", borderCollapse:"collapse", fontSize:13, marginBottom:16}}>
+          <thead>
+            <tr style={{textAlign:"left", borderBottom:"1px solid #ccc"}}>
+              <th style={{padding:"6px 4px"}}>Bloque</th>
+              <th style={{padding:"6px 4px"}}>Puntuación (1-4)</th>
+              <th style={{padding:"6px 4px"}}>Media del grupo</th>
+              <th style={{padding:"6px 4px"}}>Interpretación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(cfg.bloques).map(b => {
+              const score = r.scores?.[b];
+              const media = groupAvg.find(g=>g.key===b)?.media ?? 0;
+              return (
+                <tr key={b} style={{borderBottom:"1px solid #eee"}}>
+                  <td style={{padding:"6px 4px"}}>{cfg.bloques[b]}</td>
+                  <td style={{padding:"6px 4px"}}>{score ?? "—"}</td>
+                  <td style={{padding:"6px 4px"}}>{media}</td>
+                  <td style={{padding:"6px 4px"}}>{banda(score, media)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {r.libre && (
+          <div style={{fontSize:13, background:"#faf6ef", padding:10, borderRadius:3, marginBottom:8}}>
+            <strong>Comentario del alumno/a:</strong> {r.libre}
+          </div>
+        )}
+
+        <div style={{fontSize:11, color:"#8c9aa0", marginTop:20, borderTop:"1px solid #eee", paddingTop:8}}>
+          Documento generado el {fecha}. Uso interno / familia según corresponda. Consultar con el Departamento de Orientación ante cualquier duda de interpretación.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InformeGrupo({ filtered, groupAvg, cfg, alertas, cuestKey, curso, clase, onVolver }){
+  const fecha = new Date().toLocaleDateString("es-ES", { year:"numeric", month:"long", day:"numeric" });
+  return (
+    <div>
+      <div className="no-print" style={{display:"flex", gap:10, marginBottom:20}}>
+        <button onClick={onVolver} style={{...btnPrimary, background:"#5a7078"}}>← Volver al panel</button>
+        <button onClick={()=>window.print()} style={btnPrimary}>Imprimir / Guardar como PDF</button>
+      </div>
+
+      <div style={{border:"1px solid #12414f", padding:24, background:"#fff"}}>
+        <div style={{display:"flex", alignItems:"center", gap:12, borderBottom:"2px solid #12414f", paddingBottom:12, marginBottom:16}}>
+          <img src="/logo.jpg" alt="" style={{height:44}} />
+          <div>
+            <div style={{fontSize:18, fontWeight:"bold"}}>Informe orientativo de grupo</div>
+            <div style={{fontSize:12, color:"#5a7078"}}>Departamento de Orientación · Centro San Valero · {fecha}</div>
+          </div>
+        </div>
+
+        <p style={{fontSize:12, color:"#5a7078", background:"#f4f7f8", padding:10, borderRadius:3}}>{AVISO_INFORME} Este informe agrega datos de varios alumnos/as y contiene información identificable (correos) — uso exclusivo del equipo docente/orientación, no debe entregarse a familias.</p>
+
+        <table style={{fontSize:14, marginBottom:16}}>
+          <tbody>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Cuestionario</td><td>{cuestKey}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Curso</td><td>{curso || "Todos"}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Clase</td><td>{clase || "Todas"}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Nº de respuestas</td><td>{filtered.length}</td></tr>
+          </tbody>
+        </table>
+
+        <table style={{width:"100%", borderCollapse:"collapse", fontSize:13, marginBottom:16}}>
+          <thead>
+            <tr style={{textAlign:"left", borderBottom:"1px solid #ccc"}}>
+              <th style={{padding:"6px 4px"}}>Bloque</th>
+              <th style={{padding:"6px 4px"}}>Media del grupo (1-4)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupAvg.map(g => (
+              <tr key={g.key} style={{borderBottom:"1px solid #eee"}}>
+                <td style={{padding:"6px 4px"}}>{g.bloque}</td>
+                <td style={{padding:"6px 4px"}}>{g.media}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div style={{fontSize:14, fontWeight:"bold", marginBottom:6}}>Casos con alerta de convivencia ({alertas.length})</div>
+        {alertas.length === 0 ? (
+          <div style={{fontSize:13, color:"#5a7078", marginBottom:16}}>Ninguno en este grupo.</div>
+        ) : (
+          <ul style={{fontSize:13, marginBottom:16}}>
+            {alertas.map(a => <li key={a.codigo+a.clase}>{a.codigo} · {a.curso} {a.clase}</li>)}
+          </ul>
+        )}
+
+        <div style={{fontSize:11, color:"#8c9aa0", marginTop:20, borderTop:"1px solid #eee", paddingTop:8}}>
+          Documento generado el {fecha}. Uso interno del centro.
         </div>
       </div>
     </div>
