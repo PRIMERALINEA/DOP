@@ -75,7 +75,7 @@ const ITEMS_C2 = [
   ["H","Me quedo despierto/a hasta tarde con el móvil o pantallas.",true],
   ["H","Durante el día, tengo suficiente energía para hacer las cosas.",false],
   ["I","Últimamente me siento triste o de bajón sin motivo claro.",true],
-  ["I","Disfruto de cosas que antes me gustaban (quedar, aficiones, deporte...).",false],
+  ["I","Disfruto de las cosas que me gustan (quedar, aficiones, deporte...).",false],
   ["I","Me siento con ganas e ilusión por las cosas del día a día.",false],
   ["I","Me cuesta concentrarme más de lo normal últimamente.",true],
   ["I","Me siento irritable o de mal humor con facilidad.",true],
