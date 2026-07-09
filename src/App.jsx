@@ -82,7 +82,7 @@ export default function App(){
     <div style={{fontFamily:"'Georgia', serif", background:"#f6f3ee", minHeight:"100vh", color:"#2c2620"}}>
       <div style={{maxWidth:900, margin:"0 auto", padding:"32px 20px"}}>
         <header style={{marginBottom:28, borderBottom:"2px solid #2c2620", paddingBottom:14}}>
-          <h1 style={{fontSize:28, margin:"4px 0 0"}}>Cuestionario de Orientación · 1º ESO</h1>
+          <h1 style={{fontSize:28, margin:"4px 0 0"}}>Cuestionario de Orientación</h1>
         </header>
 
         <nav style={{display:"flex", gap:8, marginBottom:24}}>
