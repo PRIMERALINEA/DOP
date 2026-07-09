@@ -137,10 +137,11 @@ export default function App(){
   const [tab, setTab] = useState("responder");
 
   return (
-    <div style={{fontFamily:"'Georgia', serif", background:"#f6f3ee", minHeight:"100vh", color:"#2c2620"}}>
+    <div style={{fontFamily:"'Georgia', serif", background:"#f4f7f8", minHeight:"100vh", color:"#1e2f38"}}>
       <div style={{maxWidth:900, margin:"0 auto", padding:"32px 20px"}}>
-        <header style={{marginBottom:28, borderBottom:"2px solid #2c2620", paddingBottom:14}}>
-          <h1 style={{fontSize:28, margin:"4px 0 0"}}>Cuestionario de Orientación</h1>
+        <header style={{marginBottom:28, borderBottom:"2px solid #12414f", paddingBottom:14, display:"flex", alignItems:"center", gap:14}}>
+          <img src="/logo.jpg" alt="Centro San Valero" style={{height:48, width:"auto", borderRadius:4}} />
+          <h1 style={{fontSize:26, margin:0}}>Cuestionario de Orientación</h1>
         </header>
 
         <nav style={{display:"flex", gap:8, marginBottom:24}}>
@@ -157,12 +158,24 @@ export default function App(){
 
 function tabStyle(active){
   return {
-    padding:"8px 18px", border:"1px solid #2c2620", background: active ? "#2c2620" : "transparent",
-    color: active ? "#f6f3ee" : "#2c2620", cursor:"pointer", fontFamily:"inherit", fontSize:14, borderRadius:2
+    padding:"8px 18px", border:"1px solid #12414f", background: active ? "#12414f" : "transparent",
+    color: active ? "#fff" : "#12414f", cursor:"pointer", fontFamily:"inherit", fontSize:14, borderRadius:2
   };
 }
-const inputStyle = {display:"block", width:"100%", padding:"10px 12px", margin:"10px 0", border:"1px solid #b8ac9a", borderRadius:2, fontFamily:"inherit", fontSize:14, boxSizing:"border-box"};
-const btnPrimary = {padding:"10px 20px", background:"#c2694a", color:"#fff", border:"none", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14};
+const inputStyle = {display:"block", width:"100%", padding:"10px 12px", margin:"10px 0", border:"1px solid #a9c1c7", borderRadius:2, fontFamily:"inherit", fontSize:14, boxSizing:"border-box"};
+const btnPrimary = {padding:"10px 20px", background:"#1f7a8c", color:"#fff", border:"none", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14};
+
+function BarraProgreso({ actual, total }){
+  const pct = Math.round((actual/total)*100);
+  return (
+    <div style={{marginBottom:18}}>
+      <div style={{height:6, background:"#dbe6e8", borderRadius:3, overflow:"hidden"}}>
+        <div style={{height:"100%", width:`${pct}%`, background:"#1f7a8c", transition:"width .3s ease"}} />
+      </div>
+      <div style={{fontSize:11, color:"#5a7078", marginTop:4}}>{actual} de {total} · ya casi</div>
+    </div>
+  );
+}
 
 function FormularioAlumno(){
   const [cuestKey, setCuestKey] = useState("");
@@ -241,17 +254,18 @@ function FormularioAlumno(){
     const [bloque, texto] = cfg.items[itemIndex];
     return (
       <div style={{maxWidth:520}}>
-        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{bloque==="ALERTA" ? "Convivencia" : cfg.bloques[bloque]} · pregunta {itemIndex+1} de {total}</div>
+        <BarraProgreso actual={itemIndex+1} total={total} />
+        <div style={{fontSize:12, color:"#5a7078", marginBottom:6}}>{bloque==="ALERTA" ? "Convivencia" : cfg.bloques[bloque]}</div>
         <div style={{fontSize:18, marginBottom:16}}>{texto}</div>
         <div style={{display:"flex", flexDirection:"column", gap:8}}>
           {OPCIONES.map(op => (
             <button key={op.v} onClick={()=>{ setAnswers(a=>({...a,[itemIndex]:op.v})); setStep(step+1); }}
-              style={{textAlign:"left", padding:"12px 14px", border:"1px solid #b8ac9a", background: answers[itemIndex]===op.v ? "#2c2620" : "#fff", color: answers[itemIndex]===op.v ? "#fff" : "#2c2620", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
+              style={{textAlign:"left", padding:"12px 14px", border:"1px solid #a9c1c7", background: answers[itemIndex]===op.v ? "#12414f" : "#fff", color: answers[itemIndex]===op.v ? "#fff" : "#1e2f38", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
               {op.v}. {op.l}
             </button>
           ))}
         </div>
-        {step>2 && <button onClick={()=>setStep(step-1)} style={{marginTop:14, background:"none", border:"none", color:"#8c6a4a", cursor:"pointer", fontSize:13}}>← Anterior</button>}
+        {step>2 && <button onClick={()=>setStep(step-1)} style={{marginTop:14, background:"none", border:"none", color:"#5a7078", cursor:"pointer", fontSize:13}}>← Anterior</button>}
       </div>
     );
   }
