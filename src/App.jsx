@@ -5,7 +5,8 @@ import {
 } from "recharts";
 import { supabase } from "./supabaseClient.js";
 
-const ITEMS = [
+// ---------- CUESTIONARIO 1 (solo 1º ESO) ----------
+const ITEMS_C1 = [
   ["A","Me cuesta dormir porque estoy pensando en cosas del insti.",false],
   ["A","Cuando tengo un examen o trabajo importante, me pongo muy nervioso/a.",false],
   ["A","Sé calmarme cuando algo me estresa.",true],
@@ -45,24 +46,60 @@ const ITEMS = [
   ["E","Me llevo bien con la mayoría de mis profesores/as.",false],
   ["E","En casa siento que me apoyan con el tema de estudios.",false],
 ];
-
-const BLOQUES = {
+const BLOQUES_C1 = {
   A: "Gestión del estrés", B: "Hábitos de estudio", C: "Autoestima",
   D: "Habilidades sociales", E: "Clima escolar/apoyo"
 };
-const COLORS = { A:"#c2694a", B:"#4a7a8c", C:"#8c6a4a", D:"#5a8c6a", E:"#7a5a8c" };
-const OPCIONES = [
-  {v:1,l:"Nunca"},
-  {v:2,l:"A veces"},
-  {v:3,l:"Muchas veces"},
-  {v:4,l:"Siempre"},
+
+// ---------- CUESTIONARIO 2 (toda la ESO) ----------
+const ITEMS_C2 = [
+  ["F","Algún compañero/a se ha metido conmigo o me ha insultado de forma repetida.",false],
+  ["F","Me han dejado de lado o excluido del grupo a propósito más de una vez.",false],
+  ["F","He recibido mensajes, comentarios o imágenes que me han hecho sentir mal por móvil o redes.",false],
+  ["F","He visto que otro compañero/a se metía con alguien de forma repetida, sin que nadie hiciera nada.",false],
+  ["F","Sé a quién puedo contarle si veo que están tratando mal a alguien.",true],
+  ["F","Alguna vez me he metido con algún compañero/a o he participado en dejarlo de lado.",false],
+  ["F","Me siento seguro/a en los espacios del instituto (pasillos, patio, baños, vestuarios).",true],
+  ["G","Uso el móvil o las redes sociales justo antes de dormir.",false],
+  ["G","Pierdo la noción del tiempo cuando estoy con el móvil o videojuegos.",false],
+  ["G","Comparar mi vida con lo que veo en redes sociales me hace sentir peor.",false],
+  ["G","Discuto en casa por el tiempo que paso con el móvil o pantallas.",false],
+  ["G","Sé desconectarme cuando quiero, sin sentir que \"necesito\" seguir mirando.",true],
+  ["G","Uso el móvil o internet para hablar de mis problemas con amigos/as.",false],
+  ["H","Duermo al menos 8 horas la mayoría de las noches.",true],
+  ["H","Me cuesta quedarme dormido/a por las noches.",false],
+  ["H","Me despierto cansado/a aunque haya dormido.",false],
+  ["H","Me quedo despierto/a hasta tarde con el móvil o pantallas.",false],
+  ["H","Durante el día, tengo suficiente energía para hacer las cosas.",true],
+  ["I","Últimamente me siento triste o de bajón sin motivo claro.",false],
+  ["I","Disfruto de cosas que antes me gustaban (quedar, aficiones, deporte...).",true],
+  ["I","Me siento con ganas e ilusión por las cosas del día a día.",true],
+  ["I","Me cuesta concentrarme más de lo normal últimamente.",false],
+  ["I","Me siento irritable o de mal humor con facilidad.",false],
+  ["I","Tengo a alguien con quien hablar cuando me siento mal.",true],
 ];
+const BLOQUES_C2 = {
+  F: "Convivencia y acoso", G: "Pantallas y redes", H: "Sueño y descanso", I: "Estado de ánimo"
+};
+
+const COLORS = {
+  A:"#c2694a", B:"#4a7a8c", C:"#8c6a4a", D:"#5a8c6a", E:"#7a5a8c",
+  F:"#a4483f", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f"
+};
+const OPCIONES = [
+  {v:1,l:"Nunca"}, {v:2,l:"A veces"}, {v:3,l:"Muchas veces"}, {v:4,l:"Siempre"},
+];
+const CURSOS = ["1º ESO","2º ESO","3º ESO","4º ESO"];
+const CUESTIONARIOS = {
+  C1: { label: "Cuestionario 1 · Bienestar general (solo 1º ESO)", items: ITEMS_C1, bloques: BLOQUES_C1, cursos: ["1º ESO"] },
+  C2: { label: "Cuestionario 2 · Convivencia y hábitos (toda la ESO)", items: ITEMS_C2, bloques: BLOQUES_C2, cursos: CURSOS },
+};
 
 function correct(val, inv){ return inv ? 5 - val : val; }
 
-function blockScores(answers){
+function blockScores(items, bloques, answers){
   const sums = {}, counts = {};
-  ITEMS.forEach((it, i) => {
+  items.forEach((it, i) => {
     const [b, , inv] = it;
     const raw = answers[i];
     if (raw == null) return;
@@ -71,7 +108,7 @@ function blockScores(answers){
     counts[b] = (counts[b]||0) + 1;
   });
   const out = {};
-  Object.keys(BLOQUES).forEach(b => { out[b] = counts[b] ? +(sums[b]/counts[b]).toFixed(2) : null; });
+  Object.keys(bloques).forEach(b => { out[b] = counts[b] ? +(sums[b]/counts[b]).toFixed(2) : null; });
   return out;
 }
 
@@ -107,61 +144,95 @@ const inputStyle = {display:"block", width:"100%", padding:"10px 12px", margin:"
 const btnPrimary = {padding:"10px 20px", background:"#c2694a", color:"#fff", border:"none", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14};
 
 function FormularioAlumno(){
+  const [cuestKey, setCuestKey] = useState("");
+  const [curso, setCurso] = useState("");
   const [codigo, setCodigo] = useState("");
   const [clase, setClase] = useState("");
   const [answers, setAnswers] = useState({});
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0); // 0 = selección, 1 = datos, 2..N+1 = items, luego abierta
   const [libre, setLibre] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  const total = ITEMS.length;
-
   const emailValido = (v) => /^[^\s@]+@svalero\.com$/i.test(v.trim());
+  const cfg = cuestKey ? CUESTIONARIOS[cuestKey] : null;
+  const total = cfg ? cfg.items.length : 0;
 
   const submit = useCallback(async () => {
-    if (!emailValido(codigo) || !clase.trim()) { setError("Falta un correo válido de @svalero.com o la clase."); return; }
+    if (!emailValido(codigo) || !clase.trim() || !curso) { setError("Falta correo válido, curso o clase."); return; }
     setEnviando(true);
-    const scores = blockScores(answers);
+    const scores = blockScores(cfg.items, cfg.bloques, answers);
     const { error: err } = await supabase.from("respuestas_orientacion").insert({
-      codigo: codigo.trim().toLowerCase(), clase: clase.trim(), scores, libre
+      codigo: codigo.trim().toLowerCase(), clase: clase.trim(), curso, cuestionario: cuestKey, scores, libre
     });
     setEnviando(false);
     if (err) { setError("No se pudo guardar: " + err.message); return; }
     setEnviado(true);
-  }, [codigo, clase, answers, libre]);
+  }, [codigo, clase, curso, cuestKey, cfg, answers, libre]);
 
   if (enviado) return <div style={{padding:20, background:"#e8ede8", borderRadius:4}}>Respuesta guardada. Gracias.</div>;
 
+  // Paso 0: elegir cuestionario
   if (step === 0) {
     return (
-      <div style={{maxWidth:420}}>
-        <p style={{color:"#5a5248", fontSize:14}}>Introduce tu correo del centro (@svalero.com) y tu clase.</p>
-        <input style={inputStyle} placeholder="nombre@svalero.com" value={codigo} onChange={e=>setCodigo(e.target.value)} />
-        <input style={inputStyle} placeholder="Clase (ej. 1ºA)" value={clase} onChange={e=>setClase(e.target.value)} />
-        {error && <div style={{color:"#c2694a", fontSize:13}}>{error}</div>}
-        <button style={btnPrimary} onClick={()=>{ if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;} if(!clase.trim()){setError("Falta la clase.");return;} setError(""); setStep(1); }}>Empezar</button>
+      <div style={{maxWidth:460}}>
+        <p style={{color:"#5a5248", fontSize:14}}>Selecciona el cuestionario que te ha indicado tu tutor/a u orientadora.</p>
+        <div style={{display:"flex", flexDirection:"column", gap:8}}>
+          {Object.entries(CUESTIONARIOS).map(([key, c]) => (
+            <button key={key} onClick={()=>{ setCuestKey(key); setCurso(c.cursos.length===1?c.cursos[0]:""); setStep(1); }}
+              style={{textAlign:"left", padding:"14px", border:"1px solid #b8ac9a", background:"#fff", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (step >= 1 && step <= total) {
-    const i = step - 1;
-    const [bloque, texto] = ITEMS[i];
+  // Paso 1: datos del alumno/a
+  if (step === 1) {
+    return (
+      <div style={{maxWidth:420}}>
+        <p style={{color:"#5a5248", fontSize:14}}>Introduce tu correo del centro (@svalero.com), tu curso y tu clase.</p>
+        <input style={inputStyle} placeholder="nombre@svalero.com" value={codigo} onChange={e=>setCodigo(e.target.value)} />
+        {cfg.cursos.length > 1 ? (
+          <select style={inputStyle} value={curso} onChange={e=>setCurso(e.target.value)}>
+            <option value="">Selecciona tu curso</option>
+            {cfg.cursos.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        ) : (
+          <input style={inputStyle} value={curso} disabled />
+        )}
+        <input style={inputStyle} placeholder="Clase (ej. A, B, C...)" value={clase} onChange={e=>setClase(e.target.value)} />
+        {error && <div style={{color:"#c2694a", fontSize:13}}>{error}</div>}
+        <button style={btnPrimary} onClick={()=>{
+          if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;}
+          if(!curso){setError("Falta el curso.");return;}
+          if(!clase.trim()){setError("Falta la clase.");return;}
+          setError(""); setStep(2);
+        }}>Empezar</button>
+        <button onClick={()=>setStep(0)} style={{marginTop:10, background:"none", border:"none", color:"#8c6a4a", cursor:"pointer", fontSize:13, display:"block"}}>← Cambiar cuestionario</button>
+      </div>
+    );
+  }
+
+  const itemIndex = step - 2;
+  if (itemIndex >= 0 && itemIndex < total) {
+    const [bloque, texto] = cfg.items[itemIndex];
     return (
       <div style={{maxWidth:520}}>
-        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{BLOQUES[bloque]} · pregunta {step} de {total}</div>
+        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{cfg.bloques[bloque]} · pregunta {itemIndex+1} de {total}</div>
         <div style={{fontSize:18, marginBottom:16}}>{texto}</div>
         <div style={{display:"flex", flexDirection:"column", gap:8}}>
           {OPCIONES.map(op => (
-            <button key={op.v} onClick={()=>{ setAnswers(a=>({...a,[i]:op.v})); setStep(step+1); }}
-              style={{textAlign:"left", padding:"12px 14px", border:"1px solid #b8ac9a", background: answers[i]===op.v ? "#2c2620" : "#fff", color: answers[i]===op.v ? "#fff" : "#2c2620", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
+            <button key={op.v} onClick={()=>{ setAnswers(a=>({...a,[itemIndex]:op.v})); setStep(step+1); }}
+              style={{textAlign:"left", padding:"12px 14px", border:"1px solid #b8ac9a", background: answers[itemIndex]===op.v ? "#2c2620" : "#fff", color: answers[itemIndex]===op.v ? "#fff" : "#2c2620", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
               {op.v}. {op.l}
             </button>
           ))}
         </div>
-        {step>1 && <button onClick={()=>setStep(step-1)} style={{marginTop:14, background:"none", border:"none", color:"#8c6a4a", cursor:"pointer", fontSize:13}}>← Anterior</button>}
+        {step>2 && <button onClick={()=>setStep(step-1)} style={{marginTop:14, background:"none", border:"none", color:"#8c6a4a", cursor:"pointer", fontSize:13}}>← Anterior</button>}
       </div>
     );
   }
@@ -179,7 +250,7 @@ function FormularioAlumno(){
 
 function PanelAcceso(){
   const [secret, setSecret] = useState("");
-  const [unlocked, setUnlocked] = useState(null); // null = no probado, true/false = resultado
+  const [unlocked, setUnlocked] = useState(null);
   const [tryVal, setTryVal] = useState("");
   const [checking, setChecking] = useState(false);
 
@@ -196,7 +267,7 @@ function PanelAcceso(){
 
   return (
     <div style={{maxWidth:360}}>
-      <p style={{fontSize:14, color:"#5a5248"}}>Código de acceso del panel (definido en las variables de entorno de Vercel, no en el código).</p>
+      <p style={{fontSize:14, color:"#5a5248"}}>Código de acceso del panel.</p>
       <input type="password" value={tryVal} onChange={e=>setTryVal(e.target.value)} placeholder="Código de acceso" style={inputStyle}/>
       <button style={btnPrimary} onClick={tryUnlock} disabled={checking}>{checking ? "Comprobando..." : "Entrar"}</button>
       {unlocked === false && <div style={{color:"#c2694a", fontSize:13, marginTop:8}}>Código incorrecto.</div>}
@@ -206,9 +277,13 @@ function PanelAcceso(){
 
 function PanelOrientacion({ secret }){
   const [records, setRecords] = useState([]);
+  const [cuestKey, setCuestKey] = useState("C1");
+  const [cursoFiltro, setCursoFiltro] = useState("");
   const [claseFiltro, setClaseFiltro] = useState("");
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const cfg = CUESTIONARIOS[cuestKey];
 
   const load = useCallback(async () => {
     try {
@@ -225,23 +300,40 @@ function PanelOrientacion({ secret }){
     return () => clearInterval(id);
   }, [load]);
 
-  const filtered = claseFiltro ? records.filter(r=>r.clase===claseFiltro) : records;
-  const clases = [...new Set(records.map(r=>r.clase))];
+  const base = records.filter(r => (r.cuestionario || "C1") === cuestKey);
+  const filtered = base.filter(r => (!cursoFiltro || r.curso===cursoFiltro) && (!claseFiltro || r.clase===claseFiltro));
+  const cursos = [...new Set(base.map(r=>r.curso).filter(Boolean))];
+  const clases = [...new Set(base.map(r=>r.clase))];
 
-  const groupAvg = Object.keys(BLOQUES).map(b => {
-    const vals = filtered.map(r=>r.scores[b]).filter(v=>v!=null);
+  const groupAvg = Object.keys(cfg.bloques).map(b => {
+    const vals = filtered.map(r=>r.scores?.[b]).filter(v=>v!=null);
     const avg = vals.length ? vals.reduce((a,c)=>a+c,0)/vals.length : 0;
-    return { bloque: BLOQUES[b], key:b, media: +avg.toFixed(2) };
+    return { bloque: cfg.bloques[b], key:b, media: +avg.toFixed(2) };
   });
 
   return (
     <div>
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16}}>
-        <div style={{fontSize:14, color:"#5a5248"}}>{loading ? "Cargando…" : `${filtered.length} respuestas recibidas`} · se actualiza cada 5s</div>
-        <select value={claseFiltro} onChange={e=>setClaseFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
-          <option value="">Todas las clases</option>
-          {clases.map(c=><option key={c} value={c}>{c}</option>)}
-        </select>
+      <div style={{display:"flex", gap:8, marginBottom:16}}>
+        {Object.entries(CUESTIONARIOS).map(([key,c]) => (
+          <button key={key} onClick={()=>{ setCuestKey(key); setSelected(null); setCursoFiltro(""); setClaseFiltro(""); }}
+            style={tabStyle(cuestKey===key)}>{key}</button>
+        ))}
+      </div>
+
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:8}}>
+        <div style={{fontSize:14, color:"#5a5248"}}>{loading ? "Cargando…" : `${filtered.length} respuestas`} · se actualiza cada 5s</div>
+        <div style={{display:"flex", gap:8}}>
+          {cfg.cursos.length > 1 && (
+            <select value={cursoFiltro} onChange={e=>setCursoFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
+              <option value="">Todos los cursos</option>
+              {cursos.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          <select value={claseFiltro} onChange={e=>setClaseFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
+            <option value="">Todas las clases</option>
+            {clases.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
 
       <h3 style={{fontSize:16, marginBottom:8}}>Media grupal por bloque</h3>
@@ -260,22 +352,22 @@ function PanelOrientacion({ secret }){
       </div>
 
       <h3 style={{fontSize:16, marginBottom:8}}>Consulta individual</h3>
-      <div style={{display:"flex", gap:20}}>
-        <div style={{width:220, maxHeight:340, overflowY:"auto", border:"1px solid #e0d8ca", borderRadius:4}}>
+      <div style={{display:"flex", gap:20, flexWrap:"wrap"}}>
+        <div style={{width:240, maxHeight:340, overflowY:"auto", border:"1px solid #e0d8ca", borderRadius:4}}>
           {filtered.map(r => (
-            <div key={r.clase+r.codigo} onClick={()=>setSelected(r)}
+            <div key={r.clase+r.codigo+r.cuestionario} onClick={()=>setSelected(r)}
               style={{padding:"8px 12px", cursor:"pointer", background: selected===r ? "#f0e8db" : "transparent", borderBottom:"1px solid #eee", fontSize:13}}>
-              {r.codigo} <span style={{color:"#8c6a4a"}}>· {r.clase}</span>
+              {r.codigo} <span style={{color:"#8c6a4a"}}>· {r.curso} {r.clase}</span>
             </div>
           ))}
           {filtered.length===0 && <div style={{padding:12, fontSize:13, color:"#8c6a4a"}}>Sin respuestas aún.</div>}
         </div>
-        <div style={{flex:1, background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12}}>
+        <div style={{flex:1, minWidth:280, background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12}}>
           {selected ? (
             <>
-              <div style={{fontSize:14, marginBottom:8}}><strong>{selected.codigo}</strong> · {selected.clase}</div>
+              <div style={{fontSize:14, marginBottom:8}}><strong>{selected.codigo}</strong> · {selected.curso} {selected.clase}</div>
               <ResponsiveContainer width="100%" height={260}>
-                <RadarChart data={Object.keys(BLOQUES).map(b=>({bloque:BLOQUES[b], alumno:selected.scores[b]||0, grupo: groupAvg.find(g=>g.key===b)?.media||0}))}>
+                <RadarChart data={Object.keys(cfg.bloques).map(b=>({bloque:cfg.bloques[b], alumno:selected.scores?.[b]||0, grupo: groupAvg.find(g=>g.key===b)?.media||0}))}>
                   <PolarGrid />
                   <PolarAngleAxis dataKey="bloque" tick={{fontSize:10}} />
                   <PolarRadiusAxis domain={[1,4]} />
