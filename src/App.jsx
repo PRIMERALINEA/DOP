@@ -80,15 +80,24 @@ const ITEMS_C2 = [
   ["I","Me cuesta concentrarme más de lo normal últimamente.",true],
   ["I","Me siento irritable o de mal humor con facilidad.",true],
   ["I","Tengo a alguien con quien hablar cuando me siento mal.",false],
+  ["J","Repaso lo que doy en clase el mismo día, aunque no tenga examen cercano.",false],
+  ["J","Utilizo técnicas como resúmenes, esquemas o subrayado para estudiar.",false],
+  ["J","Dejo de estudiar todas las asignaturas para el final de la evaluación.",true],
+  ["J","Uso una agenda o planificador para apuntar exámenes y trabajos.",false],
+  ["J","Cuando tengo varios exámenes seguidos, sé cómo repartir el tiempo de estudio entre ellos.",false],
+  ["J","Antes de un examen, me autoevalúo (ejercicios, preguntas) para comprobar si me lo sé.",false],
+  ["J","Estudio de un tirón la noche antes en vez de repartir los días.",true],
+  ["J","Sé identificar qué parte de la materia me cuesta más para dedicarle más tiempo.",false],
 ];
 const BLOQUES_C2 = {
-  F1: "Ausencia de victimización", F2: "Entorno seguro y apoyo",
-  G: "Autorregulación de pantallas", H: "Calidad del descanso", I: "Bienestar anímico"
+  F1: "Seguridad frente al acoso", F2: "Entorno seguro y apoyo",
+  G: "Autorregulación de pantallas", H: "Calidad del descanso", I: "Bienestar anímico",
+  J: "Técnicas y hábitos de estudio"
 };
 
 const COLORS = {
   A:"#c2694a", B:"#4a7a8c", C:"#8c6a4a", D:"#5a8c6a", E:"#7a5a8c",
-  F1:"#a4483f", F2:"#c2694a", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f"
+  F1:"#a4483f", F2:"#c2694a", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f", J:"#4a7a6b"
 };
 const OPCIONES = [
   {v:1,l:"Nunca"}, {v:2,l:"A veces"}, {v:3,l:"Muchas veces"}, {v:4,l:"Siempre"},
