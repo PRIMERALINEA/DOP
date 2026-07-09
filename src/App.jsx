@@ -118,12 +118,14 @@ function FormularioAlumno(){
 
   const total = ITEMS.length;
 
+  const emailValido = (v) => /^[^\s@]+@svalero\.com$/i.test(v.trim());
+
   const submit = useCallback(async () => {
-    if (!codigo.trim() || !clase.trim()) { setError("Falta código de alumno/a o clase."); return; }
+    if (!emailValido(codigo) || !clase.trim()) { setError("Falta un correo válido de @svalero.com o la clase."); return; }
     setEnviando(true);
     const scores = blockScores(answers);
     const { error: err } = await supabase.from("respuestas_orientacion").insert({
-      codigo: codigo.trim(), clase: clase.trim(), scores, libre
+      codigo: codigo.trim().toLowerCase(), clase: clase.trim(), scores, libre
     });
     setEnviando(false);
     if (err) { setError("No se pudo guardar: " + err.message); return; }
@@ -135,11 +137,11 @@ function FormularioAlumno(){
   if (step === 0) {
     return (
       <div style={{maxWidth:420}}>
-        <p style={{color:"#5a5248", fontSize:14}}>Introduce tu código de alumno/a (el que te ha dado tu tutor/a) y tu clase. No escribas tu nombre completo.</p>
-        <input style={inputStyle} placeholder="Código de alumno/a" value={codigo} onChange={e=>setCodigo(e.target.value)} />
+        <p style={{color:"#5a5248", fontSize:14}}>Introduce tu correo del centro (@svalero.com) y tu clase.</p>
+        <input style={inputStyle} placeholder="nombre@svalero.com" value={codigo} onChange={e=>setCodigo(e.target.value)} />
         <input style={inputStyle} placeholder="Clase (ej. 1ºA)" value={clase} onChange={e=>setClase(e.target.value)} />
         {error && <div style={{color:"#c2694a", fontSize:13}}>{error}</div>}
-        <button style={btnPrimary} onClick={()=>{ if(!codigo.trim()||!clase.trim()){setError("Falta código o clase.");return;} setError(""); setStep(1); }}>Empezar</button>
+        <button style={btnPrimary} onClick={()=>{ if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;} if(!clase.trim()){setError("Falta la clase.");return;} setError(""); setStep(1); }}>Empezar</button>
       </div>
     );
   }
