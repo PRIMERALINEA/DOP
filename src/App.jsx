@@ -155,7 +155,7 @@ const CLASES_ESO = ["E1","E2","E3","E4","EP/ED"];
 const CUESTIONARIOS = {
   C1: { label: "Cuestionario 1 · Bienestar general (solo 1º ESO)", items: ITEMS_C1, bloques: BLOQUES_C1, cursos: ["1º ESO"], clases: CLASES_ESO },
   C2: { label: "Cuestionario 2 · Convivencia y hábitos (toda la ESO)", items: ITEMS_C2, bloques: BLOQUES_C2, cursos: CURSOS, clases: CLASES_ESO },
-  HE: { label: "Cuestionario 3 · Hábitos y técnicas de estudio (toda la ESO)", items: ITEMS_HE, bloques: BLOQUES_HE, cursos: CURSOS },
+  HE: { label: "Cuestionario 3 · Hábitos y técnicas de estudio (toda la ESO)", items: ITEMS_HE, bloques: BLOQUES_HE, cursos: CURSOS, clases: CLASES_ESO },
 };
 
 function correct(val, inv){ return inv ? 5 - val : val; }
