@@ -95,17 +95,67 @@ const BLOQUES_C2 = {
   J: "Técnicas y hábitos de estudio"
 };
 
+// ---------- CUESTIONARIO 3 (toda la ESO) — Hábitos y técnicas de estudio ----------
+// Instrumento de elaboración propia (redacción y agrupación originales),
+// no reproduce ítems ni claves de ningún cuestionario comercial de terceros.
+// Uso interno del centro como herramienta de autoconocimiento del alumnado,
+// sin baremos poblacionales validados (ver AVISO_INFORME).
+const ITEMS_HE = [
+  ["AC","Sé explicar para qué me sirve estudiar, más allá de aprobar.",false],
+  ["AC","Estudio solo porque me obligan, no porque me interese de verdad.",true],
+  ["AC","Cuando algo me cuesta entender, busco la forma de resolverlo en vez de rendirme.",false],
+  ["AC","Me desanimo con facilidad si una asignatura no me gusta.",true],
+  ["AC","Me marco metas propias de aprendizaje, más allá de lo que pide el profesor.",false],
+  ["OT","Sé, antes de empezar la semana, qué voy a estudiar cada día.",false],
+  ["OT","Dejo los trabajos y el estudio para el último momento.",true],
+  ["OT","Reparto el tiempo de estudio según la dificultad de cada asignatura.",false],
+  ["OT","Reviso al final del día si he cumplido lo que me había propuesto.",false],
+  ["OT","Combino el tiempo de estudio con descansos organizados.",false],
+  ["LU","Estudio siempre en el mismo sitio, sin cambiar de lugar cada día.",false],
+  ["LU","Hay ruido, música o pantallas encendidas cerca mientras estudio.",true],
+  ["LU","Mi mesa de estudio suele estar despejada de cosas que no necesito.",false],
+  ["LU","Tengo todo el material a mano antes de empezar, sin tener que levantarme.",false],
+  ["LU","La luz de mi zona de estudio es suficiente para no forzar la vista.",false],
+  ["ES","Duermo al menos 7-8 horas la mayoría de las noches.",false],
+  ["ES","Me levanto cansado/a la mayoría de las mañanas.",true],
+  ["ES","Hago descansos cortos cada 40-50 minutos cuando estudio.",false],
+  ["ES","El cansancio me impide concentrarme con frecuencia.",true],
+  ["TE","Leo el tema por encima antes de estudiarlo en profundidad.",false],
+  ["TE","Subrayo o marco las ideas clave mientras leo.",false],
+  ["TE","Hago resúmenes o esquemas propios después de leer un tema.",false],
+  ["TE","Memorizo sin haber entendido antes el contenido.",true],
+  ["TE","Relaciono lo nuevo que estudio con lo que ya sabía.",false],
+  ["TE","Me limito a copiar lo que dice el libro o internet sin reformularlo con mis palabras.",true],
+  ["EX","Leo todas las preguntas antes de empezar a responder.",false],
+  ["EX","Reparto el tiempo del examen según el valor de cada pregunta.",false],
+  ["EX","Entrego el examen en cuanto termino, sin revisar.",true],
+  ["EX","Empiezo a preparar el examen con varios días de margen.",false],
+  ["EX","Me pongo tan nervioso/a que me quedo en blanco con frecuencia.",true],
+  ["TR","Hago un esquema antes de empezar a escribir un trabajo.",false],
+  ["TR","Indico siempre las fuentes que he usado.",false],
+  ["TR","Cuido la presentación y redacción final antes de entregar.",false],
+  ["TR","Dejo la revisión y presentación para el último momento.",true],
+];
+const BLOQUES_HE = {
+  AC: "Actitud y motivación", OT: "Organización del tiempo", LU: "Lugar de estudio",
+  ES: "Estado físico y descanso", TE: "Técnicas de estudio", EX: "Exámenes y ejercicios",
+  TR: "Elaboración de trabajos"
+};
+
 const COLORS = {
   A:"#c2694a", B:"#4a7a8c", C:"#8c6a4a", D:"#5a8c6a", E:"#7a5a8c",
-  F1:"#a4483f", F2:"#c2694a", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f", J:"#4a7a6b"
+  F1:"#a4483f", F2:"#c2694a", G:"#3f6b7a", H:"#6b5b3f", I:"#5b6b3f", J:"#4a7a6b",
+  AC:"#b0553f", OT:"#3f7a6b", LU:"#4a6a8c", ES:"#8c7a3f", TE:"#5a6a8c", EX:"#7a4a5a", TR:"#4a8c5a"
 };
 const OPCIONES = [
   {v:1,l:"Nunca"}, {v:2,l:"A veces"}, {v:3,l:"Muchas veces"}, {v:4,l:"Siempre"},
 ];
 const CURSOS = ["1º ESO","2º ESO","3º ESO","4º ESO"];
+const CLASES_ESO = ["E1","E2","E3","E4","EP/ED"];
 const CUESTIONARIOS = {
-  C1: { label: "Cuestionario 1 · Bienestar general (solo 1º ESO)", items: ITEMS_C1, bloques: BLOQUES_C1, cursos: ["1º ESO"] },
-  C2: { label: "Cuestionario 2 · Convivencia y hábitos (toda la ESO)", items: ITEMS_C2, bloques: BLOQUES_C2, cursos: CURSOS },
+  C1: { label: "Cuestionario 1 · Bienestar general (solo 1º ESO)", items: ITEMS_C1, bloques: BLOQUES_C1, cursos: ["1º ESO"], clases: CLASES_ESO },
+  C2: { label: "Cuestionario 2 · Convivencia y hábitos (toda la ESO)", items: ITEMS_C2, bloques: BLOQUES_C2, cursos: CURSOS, clases: CLASES_ESO },
+  HE: { label: "Cuestionario 3 · Hábitos y técnicas de estudio (toda la ESO)", items: ITEMS_HE, bloques: BLOQUES_HE, cursos: CURSOS },
 };
 
 function correct(val, inv){ return inv ? 5 - val : val; }
@@ -242,7 +292,14 @@ function FormularioAlumno(){
         ) : (
           <input style={inputStyle} value={curso} disabled />
         )}
-        <input style={inputStyle} placeholder="Clase (ej. A, B, C...)" value={clase} onChange={e=>setClase(e.target.value)} />
+        {cfg.clases ? (
+          <select style={inputStyle} value={clase} onChange={e=>setClase(e.target.value)}>
+            <option value="">Selecciona tu clase</option>
+            {cfg.clases.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        ) : (
+          <input style={inputStyle} placeholder="Clase (ej. A, B, C...)" value={clase} onChange={e=>setClase(e.target.value)} />
+        )}
         {error && <div style={{color:"#c2694a", fontSize:13}}>{error}</div>}
         <button style={btnPrimary} onClick={()=>{
           if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;}
