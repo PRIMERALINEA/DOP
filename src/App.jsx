@@ -230,6 +230,8 @@ function FormularioAlumno(){
   const [cuestKey, setCuestKey] = useState("");
   const [curso, setCurso] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellidos, setApellidos] = useState("");
   const [clase, setClase] = useState("");
   const [answers, setAnswers] = useState({});
   const [step, setStep] = useState(0);
@@ -243,16 +245,17 @@ function FormularioAlumno(){
   const total = cfg ? cfg.items.length : 0;
 
   const submit = useCallback(async () => {
-    if (!emailValido(codigo) || !clase.trim() || !curso) { setError("Falta correo válido, curso o clase."); return; }
+    if (!emailValido(codigo) || !nombre.trim() || !apellidos.trim() || !clase.trim() || !curso) { setError("Falta correo válido, nombre, apellidos, curso o clase."); return; }
     setEnviando(true);
     const scores = blockScores(cfg.items, cfg.bloques, answers);
     const { error: err } = await supabase.from("respuestas_orientacion").insert({
-      codigo: codigo.trim().toLowerCase(), clase: clase.trim(), curso, cuestionario: cuestKey, scores, libre
+      codigo: codigo.trim().toLowerCase(), nombre: nombre.trim(), apellidos: apellidos.trim(),
+      clase: clase.trim(), curso, cuestionario: cuestKey, scores, libre
     });
     setEnviando(false);
     if (err) { setError("No se pudo guardar: " + err.message); return; }
     setEnviado(true);
-  }, [codigo, clase, curso, cuestKey, cfg, answers, libre]);
+  }, [codigo, nombre, apellidos, clase, curso, cuestKey, cfg, answers, libre]);
 
   if (enviado) return <div style={{padding:20, background:"#e8ede8", borderRadius:4}}>Respuesta guardada. Gracias.</div>;
 
@@ -282,7 +285,9 @@ function FormularioAlumno(){
   if (step === 1) {
     return (
       <div style={{maxWidth:420}}>
-        <p style={{color:"#5a5248", fontSize:14}}>Introduce tu correo del centro (@svalero.com), tu curso y tu clase.</p>
+        <p style={{color:"#5a5248", fontSize:14}}>Escribe tu nombre y apellidos, tu correo del centro (@svalero.com, uso interno, no se mostrará a nadie), tu curso y tu clase.</p>
+        <input style={inputStyle} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} />
+        <input style={inputStyle} placeholder="Apellidos" value={apellidos} onChange={e=>setApellidos(e.target.value)} />
         <input style={inputStyle} placeholder="nombre@svalero.com" value={codigo} onChange={e=>setCodigo(e.target.value)} />
         {cfg.cursos.length > 1 ? (
           <select style={inputStyle} value={curso} onChange={e=>setCurso(e.target.value)}>
@@ -302,6 +307,8 @@ function FormularioAlumno(){
         )}
         {error && <div style={{color:"#c2694a", fontSize:13}}>{error}</div>}
         <button style={btnPrimary} onClick={()=>{
+          if(!nombre.trim()){setError("Falta el nombre.");return;}
+          if(!apellidos.trim()){setError("Faltan los apellidos.");return;}
           if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;}
           if(!curso){setError("Falta el curso.");return;}
           if(!clase.trim()){setError("Falta la clase.");return;}
@@ -478,7 +485,7 @@ function PanelOrientacion({ secret }){
               <div key={r.clase+r.codigo+r.cuestionario} onClick={()=>setSelected(r)}
                 style={{padding:"8px 12px", cursor:"pointer", background: selected===r ? "#f0e8db" : "transparent", borderBottom:"1px solid #eee", fontSize:13}}>
                 {tieneAlerta && <span style={{color:"#c2694a"}}>⚠ </span>}
-                {r.codigo} <span style={{color:"#8c6a4a"}}>· {r.curso} {r.clase}</span>
+                {r.nombre ? `${r.apellidos}, ${r.nombre}` : r.codigo} <span style={{color:"#8c6a4a"}}>· {r.curso} {r.clase}</span>
               </div>
             );
           })}
@@ -487,7 +494,7 @@ function PanelOrientacion({ secret }){
         <div style={{flex:1, minWidth:280, background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12}}>
           {selected ? (
             <>
-              <div style={{fontSize:14, marginBottom:8}}><strong>{selected.codigo}</strong> · {selected.curso} {selected.clase}</div>
+              <div style={{fontSize:14, marginBottom:8}}><strong>{selected.nombre ? `${selected.nombre} ${selected.apellidos}` : selected.codigo}</strong> · {selected.curso} {selected.clase}</div>
               <ResponsiveContainer width="100%" height={260}>
                 <RadarChart data={Object.keys(cfg.bloques).map(b=>({bloque:cfg.bloques[b], alumno:selected.scores?.[b]||0, grupo: groupAvg.find(g=>g.key===b)?.media||0}))}>
                   <PolarGrid />
@@ -551,7 +558,7 @@ function InformeIndividual({ r, groupAvg, cfg, onVolver }){
 
         <table style={{fontSize:14, marginBottom:16}}>
           <tbody>
-            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Alumno/a</td><td>{r.codigo}</td></tr>
+            <tr><td style={{paddingRight:12, color:"#5a7078"}}>Alumno/a</td><td>{r.nombre ? `${r.nombre} ${r.apellidos}` : r.codigo}</td></tr>
             <tr><td style={{paddingRight:12, color:"#5a7078"}}>Curso / Clase</td><td>{r.curso} {r.clase}</td></tr>
             <tr><td style={{paddingRight:12, color:"#5a7078"}}>Cuestionario</td><td>{r.cuestionario}</td></tr>
           </tbody>
@@ -620,7 +627,7 @@ function InformeGrupo({ filtered, groupAvg, cfg, alertas, cuestKey, curso, clase
           </div>
         </div>
 
-        <p style={{fontSize:12, color:"#5a7078", background:"#f4f7f8", padding:10, borderRadius:3}}>{AVISO_INFORME} Este informe agrega datos de varios alumnos/as y contiene información identificable (correos) — uso exclusivo del equipo docente/orientación, no debe entregarse a familias.</p>
+        <p style={{fontSize:12, color:"#5a7078", background:"#f4f7f8", padding:10, borderRadius:3}}>{AVISO_INFORME} Este informe agrega datos de varios alumnos/as y contiene información identificable (nombre y apellidos) — uso exclusivo del equipo docente/orientación, no debe entregarse a familias.</p>
 
         <table style={{fontSize:14, marginBottom:16}}>
           <tbody>
@@ -653,7 +660,7 @@ function InformeGrupo({ filtered, groupAvg, cfg, alertas, cuestKey, curso, clase
           <div style={{fontSize:13, color:"#5a7078", marginBottom:16}}>Ninguno en este grupo.</div>
         ) : (
           <ul style={{fontSize:13, marginBottom:16}}>
-            {alertas.map(a => <li key={a.codigo+a.clase}>{a.codigo} · {a.curso} {a.clase}</li>)}
+            {alertas.map(a => <li key={a.codigo+a.clase}>{a.nombre ? `${a.nombre} ${a.apellidos}` : a.codigo} · {a.curso} {a.clase}</li>)}
           </ul>
         )}
 
