@@ -48,7 +48,7 @@ const ITEMS_C1 = [
   ["E","Alguna vez me he sentido excluido/a o tratado/a mal por compañeros/as.",true],
   ["E","Siento que puedo hablar con algún adulto del centro si tengo un problema.",false],
   ["E","Me llevo bien con la mayoría de mis profesores/as.",false],
-  ["E","En casa siento que me apoyan con el tema de estudios.",false],
+  ["E","En casa siento que me apoyan.",false],
 ];
 const BLOQUES_C1 = {
   A: "Regulación del estrés", B: "Hábitos de estudio", C: "Autoestima",
