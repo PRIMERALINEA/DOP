@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from "recharts";
 import { supabase } from "./supabaseClient.js";
 
@@ -423,6 +423,7 @@ function PanelOrientacion({ secret }){
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [vista, setVista] = useState("lista"); // lista | informeIndividual | informeGrupo
+  const [mostrarGrupo, setMostrarGrupo] = useState(true);
 
   const cfg = CUESTIONARIOS[cuestKey];
 
@@ -456,7 +457,7 @@ function PanelOrientacion({ secret }){
   const alertas = filtered.filter(r => tieneAlerta(r.scores));
 
   if (vista === "informeIndividual" && selected) {
-    return <InformeIndividual r={selected} groupAvg={groupAvg} cfg={cfg} onVolver={()=>setVista("lista")} />;
+    return <InformeIndividual r={selected} groupAvg={groupAvg} cfg={cfg} onVolver={()=>setVista("lista")} mostrarGrupoInicial={mostrarGrupo} />;
   }
   if (vista === "informeGrupo") {
     return <InformeGrupo filtered={filtered} groupAvg={groupAvg} cfg={cfg} alertas={alertas} cuestKey={cuestKey}
@@ -497,16 +498,32 @@ function PanelOrientacion({ secret }){
       <h3 style={{fontSize:16, marginBottom:4}}>Media grupal por bloque</h3>
       <div style={{fontSize:12, color:"#8c6a4a", marginBottom:8}}>En todos los bloques: más alto (cerca de 4) = más bienestar/protección. Más bajo (cerca de 1) = más riesgo.</div>
       <div style={{background:"#fff", border:"1px solid #e0d8ca", borderRadius:4, padding:12, marginBottom:12}}>
+        <select
+          value={selected ? selected.clase+selected.codigo+selected.cuestionario : ""}
+          onChange={e=>{
+            const rec = filtered.find(r => (r.clase+r.codigo+r.cuestionario) === e.target.value);
+            setSelected(rec || null);
+          }}
+          style={{padding:"6px 10px", fontFamily:"inherit", fontSize:13, marginBottom:10}}>
+          <option value="">Solo media del grupo</option>
+          {filtered.map(r => (
+            <option key={r.clase+r.codigo+r.cuestionario} value={r.clase+r.codigo+r.cuestionario}>
+              {r.nombre ? `${r.apellidos}, ${r.nombre}` : r.codigo} · {r.curso} {r.clase}
+            </option>
+          ))}
+        </select>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={groupAvg}>
+          <ComposedChart data={groupAvg.map(g => ({...g, alumno: selected ? (selected.scores?.[g.key] ?? null) : null}))}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
             <XAxis dataKey="bloque" tick={{fontSize:11}} />
             <YAxis domain={[1,4]} />
             <Tooltip />
-            <Bar dataKey="media" radius={[3,3,0,0]}>
+            {selected && <Legend wrapperStyle={{fontSize:12}} />}
+            <Bar name="Media grupo" dataKey="media" radius={[3,3,0,0]}>
               {groupAvg.map(g => <Cell key={g.key} fill={COLORS[g.key]} />)}
             </Bar>
-          </BarChart>
+            {selected && <Line name={selected.nombre ? `${selected.nombre} ${selected.apellidos}` : selected.codigo} type="monotone" dataKey="alumno" stroke="#12414f" strokeWidth={2} dot={{r:4}} connectNulls />}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       <button onClick={()=>setVista("informeGrupo")} disabled={filtered.length===0} style={{...btnPrimary, marginBottom:28}}>
@@ -572,15 +589,20 @@ function banda(score, media){
 
 const AVISO_INFORME = "Este informe recoge los resultados de un cuestionario de cribado orientativo elaborado por el Departamento de Orientación. No es una evaluación clínica ni diagnóstica, y las puntuaciones no tienen baremos poblacionales validados: son de referencia interna, comparadas con el grupo evaluado en este mismo pase. Debe interpretarse junto con la valoración profesional de orientación, no de forma aislada.";
 
-function InformeIndividual({ r, groupAvg, cfg, onVolver }){
+function InformeIndividual({ r, groupAvg, cfg, onVolver, mostrarGrupoInicial }){
   const fecha = new Date().toLocaleDateString("es-ES", { year:"numeric", month:"long", day:"numeric" });
   const esAlertaConducta = Object.entries(r.scores||{}).some(([k,v]) => /^ALERTA_\d+$/.test(k) && v>=3);
   const dimensionesBajas = Object.entries(BLOQUES_ALERTA_BAJA).filter(([b]) => r.scores?.["ALERTA_BLOQUE_"+b] === true).map(([,label]) => label);
+  const [mostrarGrupo, setMostrarGrupo] = useState(mostrarGrupoInicial ?? true);
   return (
     <div>
-      <div className="no-print" style={{display:"flex", gap:10, marginBottom:20}}>
+      <div className="no-print" style={{display:"flex", gap:10, marginBottom:20, alignItems:"center"}}>
         <button onClick={onVolver} style={{...btnPrimary, background:"#5a7078"}}>← Volver al panel</button>
         <button onClick={()=>window.print()} style={btnPrimary}>Imprimir / Guardar como PDF</button>
+        <label style={{display:"flex", alignItems:"center", gap:6, fontSize:13, color:"#5a7078", cursor:"pointer"}}>
+          <input type="checkbox" checked={mostrarGrupo} onChange={e=>setMostrarGrupo(e.target.checked)} />
+          Comparar con la media del grupo
+        </label>
       </div>
 
       <div style={{border:"1px solid #12414f", padding:24, background:"#fff"}}>
@@ -613,7 +635,18 @@ function InformeIndividual({ r, groupAvg, cfg, onVolver }){
           </div>
         )}
 
-        <table style={{width:"100%", borderCollapse:"collapse", fontSize:13, marginBottom:16}}>
+        <ResponsiveContainer width="100%" height={280}>
+          <RadarChart data={Object.keys(cfg.bloques).map(b=>({bloque:cfg.bloques[b], alumno:r.scores?.[b]||0, grupo: groupAvg.find(g=>g.key===b)?.media||0}))}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey="bloque" tick={{fontSize:10}} />
+            <PolarRadiusAxis domain={[1,4]} />
+            <Radar name="Alumno/a" dataKey="alumno" stroke="#c2694a" fill="#c2694a" fillOpacity={0.35} />
+            {mostrarGrupo && <Radar name="Media grupo" dataKey="grupo" stroke="#4a7a8c" fill="#4a7a8c" fillOpacity={0.15} />}
+            <Tooltip />
+          </RadarChart>
+        </ResponsiveContainer>
+
+        <table style={{width:"100%", borderCollapse:"collapse", fontSize:13, marginTop:16, marginBottom:16}}>
           <thead>
             <tr style={{textAlign:"left", borderBottom:"1px solid #ccc"}}>
               <th style={{padding:"6px 4px"}}>Bloque</th>
