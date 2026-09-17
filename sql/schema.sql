@@ -1,21 +1,26 @@
--- Esquema actualizado el 2026-09-17 para reflejar el estado real de la tabla
--- en producción (nombre, apellidos, curso y cuestionario se añadieron con
--- ALTER TABLE tras detectar que el insert de App.jsx fallaba por columnas
--- inexistentes; ver también el cambio de unique(codigo, clase) a
--- unique(codigo, clase, cuestionario) para permitir varios cuestionarios
--- por alumno/a).
+-- Esquema actualizado el 2026-09-17.
+-- Historial relevante:
+-- 1) nombre, apellidos, curso y cuestionario se añadieron con ALTER TABLE
+--    tras detectar que el insert de App.jsx fallaba por columnas inexistentes.
+-- 2) El correo (codigo) pasó a ser opcional en el formulario, así que ya no
+--    puede ser la clave de unicidad (dos alumnos sin correo en la misma
+--    clase/cuestionario tendrían el mismo valor). La unicidad ahora es
+--    nombre + apellidos + clase + curso + cuestionario. Si dos alumnos de la
+--    misma clase tienen nombre y apellidos idénticos, el segundo envío
+--    chocará: es una limitación conocida y aceptada al hacer el correo
+--    opcional.
 create table respuestas_orientacion (
   id bigint generated always as identity primary key,
-  codigo text not null,
-  nombre text,
-  apellidos text,
+  codigo text,
+  nombre text not null,
+  apellidos text not null,
   clase text not null,
-  curso text,
-  cuestionario text,
+  curso text not null,
+  cuestionario text not null,
   scores jsonb not null,
   libre text,
   created_at timestamptz default now(),
-  unique (codigo, clase, cuestionario)
+  unique (nombre, apellidos, clase, curso, cuestionario)
 );
 
 alter table respuestas_orientacion enable row level security;
