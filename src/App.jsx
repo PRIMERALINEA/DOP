@@ -444,8 +444,12 @@ function PanelOrientacion({ secret }){
 
   const base = records.filter(r => (r.cuestionario || "C1") === cuestKey);
   const filtered = base.filter(r => (!cursoFiltro || r.curso===cursoFiltro) && (!claseFiltro || r.clase===claseFiltro));
-  const cursos = [...new Set(base.map(r=>r.curso).filter(Boolean))];
   const clases = [...new Set(base.map(r=>r.clase))];
+  // Curso+clase combinados: "E2" se repite en 1º, 2º, 3º y 4º ESO, así que un
+  // desplegable de solo-clase mezclaría alumnos de cursos distintos como si
+  // fueran el mismo grupo. Se listan solo las combinaciones que existen de
+  // verdad en los datos.
+  const grupos = [...new Set(base.map(r => `${r.curso}|||${r.clase}`))].sort();
 
   const groupAvg = Object.keys(cfg.bloques).map(b => {
     const vals = filtered.map(r=>r.scores?.[b]).filter(v=>v!=null);
@@ -476,16 +480,28 @@ function PanelOrientacion({ secret }){
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:8}}>
         <div style={{fontSize:14, color:"#5a5248"}}>{loading ? "Cargando…" : `${filtered.length} respuestas`} · se actualiza cada 5s</div>
         <div style={{display:"flex", gap:8}}>
-          {cfg.cursos.length > 1 && (
-            <select value={cursoFiltro} onChange={e=>setCursoFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
-              <option value="">Todos los cursos</option>
-              {cursos.map(c=><option key={c} value={c}>{c}</option>)}
+          {cfg.cursos.length > 1 ? (
+            <select
+              value={cursoFiltro && claseFiltro ? `${cursoFiltro}|||${claseFiltro}` : ""}
+              onChange={e=>{
+                const v = e.target.value;
+                if (!v) { setCursoFiltro(""); setClaseFiltro(""); return; }
+                const [c, cl] = v.split("|||");
+                setCursoFiltro(c); setClaseFiltro(cl);
+              }}
+              style={{padding:"6px 10px", fontFamily:"inherit"}}>
+              <option value="">Todos los grupos (mezcla cursos y clases)</option>
+              {grupos.map(g => {
+                const [c, cl] = g.split("|||");
+                return <option key={g} value={g}>{c} · {cl}</option>;
+              })}
+            </select>
+          ) : (
+            <select value={claseFiltro} onChange={e=>setClaseFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
+              <option value="">Todas las clases</option>
+              {clases.map(c=><option key={c} value={c}>{c}</option>)}
             </select>
           )}
-          <select value={claseFiltro} onChange={e=>setClaseFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
-            <option value="">Todas las clases</option>
-            {clases.map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
         </div>
       </div>
 
