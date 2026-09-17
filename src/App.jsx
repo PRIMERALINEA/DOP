@@ -290,16 +290,22 @@ function FormularioAlumno(){
     }
   }, []);
 
-  const emailValido = (v) => /^[^\s@]+@svalero\.com$/i.test(v.trim());
+  // El correo es opcional: si se deja en blanco, vale; si se rellena, debe
+  // ser del centro. Nombre, apellidos, curso y clase siguen siendo obligatorios.
+  const emailValido = (v) => {
+    const t = v.trim();
+    return t === "" || /^[^\s@]+@svalero\.com$/i.test(t);
+  };
   const cfg = cuestKey ? CUESTIONARIOS[cuestKey] : null;
   const total = cfg ? cfg.items.length : 0;
 
   const submit = useCallback(async () => {
-    if (!emailValido(codigo) || !nombre.trim() || !apellidos.trim() || !clase.trim() || !curso) { setError("Falta correo válido, nombre, apellidos, curso o clase."); return; }
+    if (!nombre.trim() || !apellidos.trim() || !clase.trim() || !curso) { setError("Falta nombre, apellidos, curso o clase."); return; }
+    if (!emailValido(codigo)) { setError("Si indicas un correo, debe terminar en @svalero.com"); return; }
     setEnviando(true);
     const scores = blockScores(cfg.items, cfg.bloques, answers);
     const { error: err } = await supabase.from("respuestas_orientacion").insert({
-      codigo: codigo.trim().toLowerCase(), nombre: nombre.trim(), apellidos: apellidos.trim(),
+      codigo: codigo.trim() ? codigo.trim().toLowerCase() : null, nombre: nombre.trim(), apellidos: apellidos.trim(),
       clase: clase.trim(), curso, cuestionario: cuestKey, scores, libre
     });
     setEnviando(false);
@@ -335,10 +341,10 @@ function FormularioAlumno(){
   if (step === 1) {
     return (
       <div style={{maxWidth:420}}>
-        <p style={{color:"#5a5248", fontSize:14}}>Escribe tu nombre y apellidos, tu correo del centro (@svalero.com, uso interno, no se mostrará a nadie), tu curso y tu clase.</p>
+        <p style={{color:"#5a5248", fontSize:14}}>Escribe tu nombre y apellidos, tu curso y tu clase. El correo del centro (@svalero.com) es opcional, uso interno, no se mostrará a nadie.</p>
         <input style={inputStyle} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} />
         <input style={inputStyle} placeholder="Apellidos" value={apellidos} onChange={e=>setApellidos(e.target.value)} />
-        <input style={inputStyle} placeholder="nombre@svalero.com" value={codigo} onChange={e=>setCodigo(e.target.value)} />
+        <input style={inputStyle} placeholder="nombre@svalero.com (opcional)" value={codigo} onChange={e=>setCodigo(e.target.value)} />
         {cfg.cursos.length > 1 ? (
           <select style={inputStyle} value={curso} onChange={e=>setCurso(e.target.value)}>
             <option value="">Selecciona tu curso</option>
@@ -359,7 +365,7 @@ function FormularioAlumno(){
         <button style={btnPrimary} onClick={()=>{
           if(!nombre.trim()){setError("Falta el nombre.");return;}
           if(!apellidos.trim()){setError("Faltan los apellidos.");return;}
-          if(!emailValido(codigo)){setError("El correo debe terminar en @svalero.com");return;}
+          if(!emailValido(codigo)){setError("Si indicas un correo, debe terminar en @svalero.com");return;}
           if(!curso){setError("Falta el curso.");return;}
           if(!clase.trim()){setError("Falta la clase.");return;}
           setError(""); setStep(2);
