@@ -277,6 +277,19 @@ function FormularioAlumno(){
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  // Permite enlazar/escanear (QR) directamente a un cuestionario concreto con
+  // ?c=C1 | ?c=C2 | ?c=HE, saltando la pantalla de selección. Solo se aplica
+  // una vez al cargar la página; si el parámetro no es válido, no hace nada.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("c");
+    if (c && CUESTIONARIOS[c]) {
+      const cfgInicial = CUESTIONARIOS[c];
+      setCuestKey(c);
+      setCurso(cfgInicial.cursos.length === 1 ? cfgInicial.cursos[0] : "");
+      setStep(1);
+    }
+  }, []);
+
   const emailValido = (v) => /^[^\s@]+@svalero\.com$/i.test(v.trim());
   const cfg = cuestKey ? CUESTIONARIOS[cuestKey] : null;
   const total = cfg ? cfg.items.length : 0;
