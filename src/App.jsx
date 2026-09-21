@@ -283,6 +283,9 @@ const OPCIONES_5 = [
 const OPCIONES_HABILIDAD = [
   {v:1,l:"Nada hábil"}, {v:2,l:"Poco hábil"}, {v:3,l:"Hábil"}, {v:4,l:"Bastante hábil"}, {v:5,l:"Muy hábil"},
 ];
+const OPCIONES_IMPORTANCIA = [
+  {v:1,l:"Nada importante"}, {v:2,l:"Poco importante"}, {v:3,l:"Moderadamente importante"}, {v:4,l:"Bastante importante"}, {v:5,l:"Muy importante"},
+];
 
 // Descripciones breves de cada tipo dominante (tono cercano y motivador,
 // sin etiquetas limitantes) y, para las combinaciones de los 2 tipos más
@@ -786,16 +789,23 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
   const [respEleccion, setRespEleccion] = useState({});
   const [respHabilidad, setRespHabilidad] = useState({});
   const [abiertas, setAbiertas] = useState({});
+  const [respValores, setRespValores] = useState({});
+  const [respAptitudes, setRespAptitudes] = useState({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
+
+  const valoresKeys = useMemo(() => Object.keys(VALORES_RIASEC), []);
+  const aptitudesKeys = useMemo(() => Object.keys(APTITUDES_RIASEC), []);
 
   const pasos = useMemo(() => ([
     ...cfg.itemsLikert.map((it, i) => ({ tipoPaso:"likert", idx:i, bloqueTipo:it[0], texto:it[1] })),
     ...cfg.eleccion.map((it, i) => ({ tipoPaso:"eleccion", idx:i, texto:it.texto, opciones:it.opciones })),
     ...cfg.habilidades.map((it, i) => ({ tipoPaso:"habilidad", idx:i, bloqueTipo:it[0], texto:it[1] })),
     ...cfg.datosAbiertos.map((texto, i) => ({ tipoPaso:"abierta", idx:i, texto })),
-  ]), [cfg]);
+    ...valoresKeys.map((k, i) => ({ tipoPaso:"valor", idx:i, clave:k, texto:`Importancia para ti de: ${VALORES_RIASEC[k].label}` })),
+    ...aptitudesKeys.map((k, i) => ({ tipoPaso:"aptitud", idx:i, clave:k, texto:`¿Cómo de hábil te consideras en...: ${APTITUDES_RIASEC[k].label}?` })),
+  ]), [cfg, valoresKeys, aptitudesKeys]);
   const total = pasos.length;
 
   // Nº máximo de veces que puede salir elegido cada tipo en el Bloque 2, para
@@ -823,10 +833,15 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
     const ranking = [...ORDEN_RIASEC].sort((a,b) => (final[b]||0) - (final[a]||0));
     const codigoHolland = ranking.slice(0,3).map(letraRiasec).join("");
     const top2Pair = pairKeyRiasec(ranking[0], ranking[1]);
+    const valoresFinal = {};
+    valoresKeys.forEach((k, i) => { valoresFinal[k] = respValores[i] ?? null; });
+    const aptitudesFinal = {};
+    aptitudesKeys.forEach((k, i) => { aptitudesFinal[k] = respAptitudes[i] ?? null; });
     const scores = {
       likert: avgLikert, eleccionCount: respEleccion, eleccionNormalizado, final,
       habilidades: avgHabilidad, ranking, codigoHolland, top2Pair,
       abiertas: cfg.datosAbiertos.map((_, i) => abiertas[i] || ""),
+      valores: valoresFinal, aptitudes: aptitudesFinal,
     };
     const { error: err } = await supabase.from("respuestas_orientacion").insert({
       codigo: alumno.codigo, nombre: alumno.nombre, apellidos: alumno.apellidos,
@@ -835,26 +850,30 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
     setEnviando(false);
     if (err) { setError("No se pudo guardar: " + err.message); return; }
     setEnviado(true);
-  }, [cfg, respLikert, respEleccion, respHabilidad, abiertas, maxEleccionPorTipo, alumno, cuestKey]);
+  }, [cfg, respLikert, respEleccion, respHabilidad, abiertas, respValores, respAptitudes, valoresKeys, aptitudesKeys, maxEleccionPorTipo, alumno, cuestKey]);
 
   if (enviado) return <div style={{padding:20, background:"#e8ede8", borderRadius:4}}>Respuesta guardada. Gracias.</div>;
 
   const p = pasos[pasoInterno];
+  const esUltima = pasoInterno === total - 1;
+  const avanzar = () => { if (esUltima) { submit(); } else { setPasoInterno(pasoInterno+1); } };
   const etiquetaBloque = {
     likert: "Bloque 1 · Intereses",
     eleccion: "Bloque 2 · Preferencias de actividades",
     habilidad: "Bloque 3 · Autoevaluación de habilidades",
     abierta: "Bloque 4 · Cuéntanos más (opcional)",
+    valor: "Bloque 5 · Valores de trabajo",
+    aptitud: "Bloque 5 · Aptitudes técnicas",
   }[p.tipoPaso];
 
   const anterior = pasoInterno > 0 && (
     <button onClick={()=>setPasoInterno(pasoInterno-1)} style={{marginTop:14, background:"none", border:"none", color:"#5a7078", cursor:"pointer", fontSize:13}}>← Anterior</button>
   );
 
-  if (p.tipoPaso === "likert" || p.tipoPaso === "habilidad") {
-    const opciones = p.tipoPaso === "likert" ? cfg.opcionesLikert : cfg.opcionesHabilidad;
-    const respuestas = p.tipoPaso === "likert" ? respLikert : respHabilidad;
-    const setRespuestas = p.tipoPaso === "likert" ? setRespLikert : setRespHabilidad;
+  if (["likert","habilidad","valor","aptitud"].includes(p.tipoPaso)) {
+    const opciones = { likert:cfg.opcionesLikert, habilidad:cfg.opcionesHabilidad, valor:OPCIONES_IMPORTANCIA, aptitud:OPCIONES_HABILIDAD }[p.tipoPaso];
+    const respuestas = { likert:respLikert, habilidad:respHabilidad, valor:respValores, aptitud:respAptitudes }[p.tipoPaso];
+    const setRespuestas = { likert:setRespLikert, habilidad:setRespHabilidad, valor:setRespValores, aptitud:setRespAptitudes }[p.tipoPaso];
     return (
       <div style={{maxWidth:520}}>
         <BarraProgreso actual={pasoInterno+1} total={total} />
@@ -862,12 +881,13 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
         <div style={{fontSize:18, marginBottom:16}}>{p.texto}</div>
         <div style={{display:"flex", flexDirection:"column", gap:8}}>
           {opciones.map(op => (
-            <button key={op.v} onClick={()=>{ setRespuestas(a=>({...a,[p.idx]:op.v})); setPasoInterno(pasoInterno+1); }}
+            <button key={op.v} disabled={enviando} onClick={()=>{ setRespuestas(a=>({...a,[p.idx]:op.v})); avanzar(); }}
               style={{textAlign:"left", padding:"12px 14px", border:"1px solid #a9c1c7", background: respuestas[p.idx]===op.v ? "#12414f" : "#fff", color: respuestas[p.idx]===op.v ? "#fff" : "#1e2f38", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
               {op.v}. {op.l}
             </button>
           ))}
         </div>
+        {error && <div style={{color:"#c2694a", fontSize:13, marginTop:8}}>{error}</div>}
         {anterior}
       </div>
     );
@@ -881,7 +901,7 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
         <div style={{fontSize:18, marginBottom:16}}>{p.texto}</div>
         <div style={{display:"flex", flexDirection:"column", gap:8}}>
           {p.opciones.map((op, i) => (
-            <button key={i} onClick={()=>{ setRespEleccion(a=>({...a,[op.tipo]:(a[op.tipo]||0)+1})); setPasoInterno(pasoInterno+1); }}
+            <button key={i} onClick={()=>{ setRespEleccion(a=>({...a,[op.tipo]:(a[op.tipo]||0)+1})); avanzar(); }}
               style={{textAlign:"left", padding:"12px 14px", border:"1px solid #a9c1c7", background:"#fff", color:"#1e2f38", borderRadius:2, cursor:"pointer", fontFamily:"inherit", fontSize:14}}>
               {op.label}
             </button>
@@ -893,16 +913,13 @@ function FormularioRIASEC({ cfg, cuestKey, alumno, onCambiarCuestionario }){
   }
 
   // abierta
-  const esUltima = pasoInterno === total - 1;
   return (
     <div style={{maxWidth:520}}>
       <BarraProgreso actual={pasoInterno+1} total={total} />
       <div style={{fontSize:12, color:"#8c6a4a", marginBottom:6}}>{etiquetaBloque}</div>
       <div style={{fontSize:18, marginBottom:16}}>{p.texto}</div>
       <textarea style={{...inputStyle, height:90}} value={abiertas[p.idx] || ""} onChange={e=>setAbiertas(a=>({...a,[p.idx]:e.target.value}))} placeholder="Puedes dejarlo en blanco" />
-      <button style={btnPrimary} disabled={enviando} onClick={()=>{
-        if (esUltima) { submit(); } else { setPasoInterno(pasoInterno+1); }
-      }}>{enviando ? "Enviando..." : esUltima ? "Finalizar y enviar" : "Siguiente"}</button>
+      <button style={btnPrimary} disabled={enviando} onClick={avanzar}>{enviando ? "Enviando..." : esUltima ? "Finalizar y enviar" : "Siguiente"}</button>
       {error && <div style={{color:"#c2694a", fontSize:13, marginTop:8}}>{error}</div>}
       {anterior}
     </div>
@@ -1454,8 +1471,10 @@ function Simulador({ secret }){
 
   const [riasec, setRiasec] = useState({}); // {R_x: 1-5}
   const [bigfive, setBigfive] = useState({}); // {BF_x: 1-7}
-  const [valores, setValores] = useState(Object.fromEntries(Object.keys(VALORES_RIASEC).map(k=>[k,2.5])));
-  const [aptitudes, setAptitudes] = useState(Object.fromEntries(Object.keys(APTITUDES_RIASEC).map(k=>[k,2.5])));
+  const valoresNeutro = () => Object.fromEntries(Object.keys(VALORES_RIASEC).map(k=>[k,3]));
+  const aptitudesNeutro = () => Object.fromEntries(Object.keys(APTITUDES_RIASEC).map(k=>[k,3]));
+  const [valores, setValores] = useState(valoresNeutro());
+  const [aptitudes, setAptitudes] = useState(aptitudesNeutro());
   const [resultado, setResultado] = useState(null);
 
   useEffect(() => {
@@ -1488,18 +1507,23 @@ function Simulador({ secret }){
     const rBf = records.find(r => r.cuestionario==="BF" && r.nombre===p.nombre && r.apellidos===p.apellidos && r.curso===p.curso && r.clase===p.clase);
     setRiasec(rRiasec?.scores?.final || {});
     setBigfive(rBf?.scores || {});
+    // El Bloque 5 del RIASEC (si el alumno/a lo respondió) trae ya su propia
+    // valoración de valores y aptitudes — se precarga, con neutro (3) donde
+    // falte un dato.
+    setValores({ ...valoresNeutro(), ...Object.fromEntries(Object.entries(rRiasec?.scores?.valores||{}).filter(([,v])=>v!=null)) });
+    setAptitudes({ ...aptitudesNeutro(), ...Object.fromEntries(Object.entries(rRiasec?.scores?.aptitudes||{}).filter(([,v])=>v!=null)) });
   };
 
-  const limpiar = () => { setAlumnoSel(null); setRiasec({}); setBigfive({}); setResultado(null); };
+  const limpiar = () => { setAlumnoSel(null); setRiasec({}); setBigfive({}); setValores(valoresNeutro()); setAptitudes(aptitudesNeutro()); setResultado(null); };
 
   const calcular = () => {
     const bfDisponible = ["BF_O","BF_C","BF_E","BF_A","BF_ES"].every(k => bigfive[k] != null);
     const personBFNorm = {};
     if (bfDisponible) ["BF_O","BF_C","BF_E","BF_A","BF_ES"].forEach(k => { personBFNorm[k] = (bigfive[k]-4)/3; });
     const personValoresNorm = {};
-    Object.keys(VALORES_RIASEC).forEach(k => { personValoresNorm[k] = ((valores[k]??2.5)-2.5)/2.5; });
+    Object.keys(VALORES_RIASEC).forEach(k => { personValoresNorm[k] = ((valores[k]??3)-3)/2; });
     const personAptitudesNorm = {};
-    Object.keys(APTITUDES_RIASEC).forEach(k => { personAptitudesNorm[k] = ((aptitudes[k]??2.5)-2.5)/2.5; });
+    Object.keys(APTITUDES_RIASEC).forEach(k => { personAptitudesNorm[k] = ((aptitudes[k]??3)-3)/2; });
 
     const filas = CODIGOS_ENTORNO.map(codigo2 => {
       const envVec = envVecRiasec(codigo2);
@@ -1566,20 +1590,20 @@ function Simulador({ secret }){
           ))}
           <button onClick={()=>setBigfive({})} style={{marginTop:2, background:"none", border:"none", color:"#8c6a4a", cursor:"pointer", fontSize:12}}>Vaciar personalidad (no usarla en el cálculo)</button>
 
-          <div style={{fontSize:13, fontWeight:"bold", margin:"16px 0 6px"}}>Valores de trabajo (importancia, tu criterio)</div>
+          <div style={{fontSize:13, fontWeight:"bold", margin:"16px 0 6px"}}>Valores de trabajo (importancia, 1-5, neutro=3) {alumnoSel && Object.keys(records.find(r=>r.cuestionario==="RIASEC"&&r.nombre===alumnoSel.nombre&&r.apellidos===alumnoSel.apellidos)?.scores?.valores||{}).length>0 && <span style={{color:"#4a8c6a", fontWeight:"normal"}}>· precargado del RIASEC (Bloque 5)</span>}</div>
           {Object.entries(VALORES_RIASEC).map(([k,v]) => (
             <div key={k} style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
               <div style={{width:170, fontSize:12}}>{v.label}</div>
-              <input type="range" min="0" max="5" step="0.5" style={sliderStyle} value={valores[k]} onChange={e=>setValores(vv=>({...vv,[k]:+e.target.value}))} />
+              <input type="range" min="1" max="5" step="0.5" style={sliderStyle} value={valores[k]} onChange={e=>setValores(vv=>({...vv,[k]:+e.target.value}))} />
               <div style={{width:28, fontSize:12, textAlign:"right"}}>{valores[k]}</div>
             </div>
           ))}
 
-          <div style={{fontSize:13, fontWeight:"bold", margin:"16px 0 6px"}}>Aptitudes técnicas autopercibidas (tu criterio)</div>
+          <div style={{fontSize:13, fontWeight:"bold", margin:"16px 0 6px"}}>Aptitudes técnicas autopercibidas (1-5, neutro=3) {alumnoSel && Object.keys(records.find(r=>r.cuestionario==="RIASEC"&&r.nombre===alumnoSel.nombre&&r.apellidos===alumnoSel.apellidos)?.scores?.aptitudes||{}).length>0 && <span style={{color:"#4a8c6a", fontWeight:"normal"}}>· precargado del RIASEC (Bloque 5)</span>}</div>
           {Object.entries(APTITUDES_RIASEC).map(([k,v]) => (
             <div key={k} style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
               <div style={{width:170, fontSize:12}}>{v.label}</div>
-              <input type="range" min="0" max="5" step="0.5" style={sliderStyle} value={aptitudes[k]} onChange={e=>setAptitudes(aa=>({...aa,[k]:+e.target.value}))} />
+              <input type="range" min="1" max="5" step="0.5" style={sliderStyle} value={aptitudes[k]} onChange={e=>setAptitudes(aa=>({...aa,[k]:+e.target.value}))} />
               <div style={{width:28, fontSize:12, textAlign:"right"}}>{aptitudes[k]}</div>
             </div>
           ))}
