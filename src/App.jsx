@@ -486,16 +486,19 @@ const OPCIONES = [
 ];
 const CURSOS = ["1º ESO","2º ESO","3º ESO","4º ESO"];
 const CLASES_ESO = ["E1","E2","E3","E4","EP/ED"];
+// Clases de RIASEC y Big Five: cubren 3º-4º ESO (E1-E4, ED) y los itinerarios
+// de Bachillerato (C=Ciencias, T=Tecnología, H=Humanidades).
+const CLASES_ESO_BACH = ["E1","E2","E3","E4","ED","C","T","H"];
 const CUESTIONARIOS = {
   C1: { label: "Cuestionario 1 · Bienestar general (solo 1º ESO)", items: ITEMS_C1, bloques: BLOQUES_C1, cursos: ["1º ESO"], clases: CLASES_ESO, escala:[1,4] },
   C2: { label: "Cuestionario 2 · Convivencia y hábitos (toda la ESO)", items: ITEMS_C2, bloques: BLOQUES_C2, cursos: CURSOS, clases: CLASES_ESO, escala:[1,4] },
   HE: { label: "Cuestionario 3 · Hábitos y técnicas de estudio (toda la ESO)", items: ITEMS_HE, bloques: BLOQUES_HE, cursos: CURSOS, clases: CLASES_ESO, escala:[1,4] },
   RIASEC: { label: "Cuestionario 4 · Orientación vocacional RIASEC (3º-4º ESO y Bachillerato)", tipo:"riasec", bloques: BLOQUES_RIASEC, escala:[1,5],
-    cursos: ["3º ESO","4º ESO","1º Bachillerato","2º Bachillerato"], clases: null,
+    cursos: ["3º ESO","4º ESO","1º Bachillerato","2º Bachillerato"], clases: CLASES_ESO_BACH,
     itemsLikert: ITEMS_RIASEC, opcionesLikert: OPCIONES_5, eleccion: ELECCION_RIASEC,
     habilidades: HABILIDADES_RIASEC, opcionesHabilidad: OPCIONES_HABILIDAD, datosAbiertos: DATOS_ABIERTOS_RIASEC },
   BF: { label: "Cuestionario 5 · Personalidad (Big Five breve, TIPI)", items: ITEMS_BF, bloques: BLOQUES_BF,
-    cursos: ["3º ESO","4º ESO","1º Bachillerato","2º Bachillerato"], clases: null, escala:[1,7], opciones: OPCIONES_7 },
+    cursos: ["3º ESO","4º ESO","1º Bachillerato","2º Bachillerato"], clases: CLASES_ESO_BACH, escala:[1,7], opciones: OPCIONES_7 },
 };
 
 // Puntuación media 1-5 por tipo a partir de un array de ítems [tipo, texto]
