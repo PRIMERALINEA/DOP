@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -437,11 +437,10 @@ function PanelAcceso(){
 function PanelOrientacion({ secret }){
   const [records, setRecords] = useState([]);
   const [cuestKey, setCuestKey] = useState("C1");
-  const [cursoFiltro, setCursoFiltro] = useState("");
-  const [claseFiltro, setClaseFiltro] = useState("");
+  const [grupoActivo, setGrupoActivo] = useState(null); // {curso, clase} | null = todos los grupos juntos
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [vista, setVista] = useState("lista"); // lista | informeIndividual | informeGrupo
+  const [vista, setVista] = useState("carpetas"); // carpetas | grupo | informeIndividual | informeGrupo
   const [mostrarGrupo, setMostrarGrupo] = useState(true);
 
   const cfg = CUESTIONARIOS[cuestKey];
@@ -462,13 +461,24 @@ function PanelOrientacion({ secret }){
   }, [load]);
 
   const base = records.filter(r => (r.cuestionario || "C1") === cuestKey);
-  const filtered = base.filter(r => (!cursoFiltro || r.curso===cursoFiltro) && (!claseFiltro || r.clase===claseFiltro));
-  const clases = [...new Set(base.map(r=>r.clase))];
-  // Curso+clase combinados: "E2" se repite en 1º, 2º, 3º y 4º ESO, así que un
-  // desplegable de solo-clase mezclaría alumnos de cursos distintos como si
-  // fueran el mismo grupo. Se listan solo las combinaciones que existen de
-  // verdad en los datos.
-  const grupos = [...new Set(base.map(r => `${r.curso}|||${r.clase}`))].sort();
+
+  // Carpetas: una por cada combinación curso+clase que exista de verdad en
+  // las respuestas de este cuestionario. "E2" se repite en 1º, 2º, 3º y 4º
+  // ESO, así que agrupar solo por clase mezclaría alumnos de cursos
+  // distintos como si fueran el mismo grupo.
+  const carpetas = useMemo(() => {
+    const map = new Map();
+    base.forEach(r => {
+      const key = `${r.curso}|||${r.clase}`;
+      if (!map.has(key)) map.set(key, { curso: r.curso, clase: r.clase, total: 0, alertas: 0 });
+      const c = map.get(key);
+      c.total++;
+      if (tieneAlerta(r.scores)) c.alertas++;
+    });
+    return [...map.values()].sort((a,b) => (a.curso+a.clase).localeCompare(b.curso+b.clase));
+  }, [base]);
+
+  const filtered = grupoActivo ? base.filter(r => r.curso===grupoActivo.curso && r.clase===grupoActivo.clase) : base;
 
   const groupAvg = Object.keys(cfg.bloques).map(b => {
     const vals = filtered.map(r=>r.scores?.[b]).filter(v=>v!=null);
@@ -479,49 +489,67 @@ function PanelOrientacion({ secret }){
   // Ítems de alerta: se guardan aparte, con su valor bruto (sin corregir), 1-4.
   const alertas = filtered.filter(r => tieneAlerta(r.scores));
 
+  const irACarpetas = () => { setVista("carpetas"); setGrupoActivo(null); setSelected(null); };
+  const abrirCarpeta = (curso, clase) => { setGrupoActivo({curso, clase}); setSelected(null); setVista("grupo"); };
+
   if (vista === "informeIndividual" && selected) {
-    return <InformeIndividual r={selected} groupAvg={groupAvg} cfg={cfg} onVolver={()=>setVista("lista")} mostrarGrupoInicial={mostrarGrupo} />;
+    return <InformeIndividual r={selected} groupAvg={groupAvg} cfg={cfg} onVolver={()=>setVista("grupo")} mostrarGrupoInicial={mostrarGrupo} />;
   }
   if (vista === "informeGrupo") {
     return <InformeGrupo filtered={filtered} groupAvg={groupAvg} cfg={cfg} alertas={alertas} cuestKey={cuestKey}
-      curso={cursoFiltro} clase={claseFiltro} onVolver={()=>setVista("lista")} />;
+      curso={grupoActivo?.curso || ""} clase={grupoActivo?.clase || ""} onVolver={()=>setVista("grupo")} />;
   }
 
-  return (
-    <div>
-      <div style={{display:"flex", gap:8, marginBottom:16}}>
-        {Object.entries(CUESTIONARIOS).map(([key,c]) => (
-          <button key={key} onClick={()=>{ setCuestKey(key); setSelected(null); setCursoFiltro(""); setClaseFiltro(""); }}
-            style={tabStyle(cuestKey===key)}>{key}</button>
-        ))}
-      </div>
+  const tabsCuestionario = (
+    <div style={{display:"flex", gap:8, marginBottom:16}}>
+      {Object.entries(CUESTIONARIOS).map(([key,c]) => (
+        <button key={key} onClick={()=>{ setCuestKey(key); irACarpetas(); }}
+          style={tabStyle(cuestKey===key)}>{key}</button>
+      ))}
+    </div>
+  );
 
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:8}}>
-        <div style={{fontSize:14, color:"#5a5248"}}>{loading ? "Cargando…" : `${filtered.length} respuestas`} · se actualiza cada 5s</div>
-        <div style={{display:"flex", gap:8}}>
-          {cfg.cursos.length > 1 ? (
-            <select
-              value={cursoFiltro && claseFiltro ? `${cursoFiltro}|||${claseFiltro}` : ""}
-              onChange={e=>{
-                const v = e.target.value;
-                if (!v) { setCursoFiltro(""); setClaseFiltro(""); return; }
-                const [c, cl] = v.split("|||");
-                setCursoFiltro(c); setClaseFiltro(cl);
-              }}
-              style={{padding:"6px 10px", fontFamily:"inherit"}}>
-              <option value="">Todos los grupos (mezcla cursos y clases)</option>
-              {grupos.map(g => {
-                const [c, cl] = g.split("|||");
-                return <option key={g} value={g}>{c} · {cl}</option>;
-              })}
-            </select>
-          ) : (
-            <select value={claseFiltro} onChange={e=>setClaseFiltro(e.target.value)} style={{padding:"6px 10px", fontFamily:"inherit"}}>
-              <option value="">Todas las clases</option>
-              {clases.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
+  if (vista === "carpetas") {
+    return (
+      <div>
+        {tabsCuestionario}
+        <div style={{fontSize:14, color:"#5a5248", marginBottom:4}}>{loading ? "Cargando…" : `${base.length} respuestas en total`} · se actualiza cada 5s</div>
+        <h3 style={{fontSize:16, margin:"12px 0 4px"}}>Carpetas por grupo · {cfg.label}</h3>
+        <div style={{fontSize:12, color:"#8c6a4a", marginBottom:12}}>Cada carpeta contiene solo las respuestas de ese curso y clase para este cuestionario.</div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:12, marginBottom:20}}>
+          {carpetas.map(c => (
+            <div key={c.curso+c.clase} onClick={()=>abrirCarpeta(c.curso, c.clase)}
+              style={{cursor:"pointer", border:"1px solid #a9c1c7", borderRadius:4, padding:"14px 16px", background:"#fff"}}>
+              <div style={{fontSize:22, marginBottom:6}}>📁</div>
+              <div style={{fontWeight:"bold", fontSize:14}}>{c.curso} · {c.clase}</div>
+              <div style={{fontSize:12, color:"#5a7078", marginTop:4}}>{c.total} respuesta{c.total!==1?"s":""}</div>
+              {c.alertas > 0 && <div style={{fontSize:12, color:"#c2694a", marginTop:2}}>⚠ {c.alertas} con alerta</div>}
+            </div>
+          ))}
+          {carpetas.length===0 && !loading && (
+            <div style={{fontSize:13, color:"#8c6a4a"}}>Sin respuestas aún para este cuestionario.</div>
           )}
         </div>
+        {carpetas.length > 0 && (
+          <button onClick={()=>{ setGrupoActivo(null); setSelected(null); setVista("grupo"); }} style={{...btnPrimary, background:"#5a7078"}}>
+            Ver todos los grupos juntos
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // vista === "grupo": panel de un grupo concreto (o de todos juntos, si se entró por "Ver todos los grupos juntos")
+  return (
+    <div>
+      {tabsCuestionario}
+
+      <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:16, flexWrap:"wrap"}}>
+        <button onClick={irACarpetas} style={{...btnPrimary, background:"#5a7078"}}>← Volver a carpetas</button>
+        <div style={{fontSize:14, fontWeight:"bold"}}>
+          {grupoActivo ? `📁 ${grupoActivo.curso} · ${grupoActivo.clase}` : "Todos los grupos"}
+        </div>
+        <div style={{fontSize:13, color:"#5a5248"}}>{loading ? "Cargando…" : `${filtered.length} respuestas`} · se actualiza cada 5s</div>
       </div>
 
       {alertas.length > 0 && (
